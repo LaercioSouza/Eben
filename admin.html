@@ -1,0 +1,280 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Painel de Administrador - Sistema de Tarefas</title>
+    <meta name="description" content="Painel de administrador para gerenciamento de tarefas" />
+    <meta name="author" content="Task Generator" />
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/src/styles.css">
+  </head>
+
+  <body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-success">
+      <div class="container-fluid">
+        <a class="navbar-brand" href="#">Sistema de Tarefas</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav me-auto">
+            <li class="nav-item">
+              <a class="nav-link active" href="admin.html">Criar Tarefas</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="admin-list.html">Listar Tarefas</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="admin-forms.html">Gerenciar Formulários</a>
+            </li>
+          </ul>
+          <ul class="navbar-nav">
+            <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle" href="#" id="userManagementDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                Gerenciar Usuários
+              </a>
+              <ul class="dropdown-menu" aria-labelledby="userManagementDropdown">
+                <li><a class="dropdown-item" href="#" id="manageEmployeesBtn">Gerenciar Técnicos</a></li>
+              </ul>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="index.html">Sair</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <div class="container-fluid">
+      <div class="row justify-content-center">
+        <div class="col-lg-6 col-md-8 col-sm-12">
+          <div class="task-card">
+            <h2 class="text-center mb-4">CRIAR NOVA TAREFA</h2>
+            
+            <div class="d-flex justify-content-end mb-3">
+              <button id="addCompanyBtn" class="btn btn-sm btn-outline-success me-2">
+                <i class="bi bi-building-add"></i> Nova Empresa
+              </button>
+              <button id="addEmployeeBtn" class="btn btn-sm btn-outline-success">
+                <i class="bi bi-person-add"></i> Novo Técnico
+              </button>
+            </div>
+            
+            <form id="taskForm">
+              <div class="mb-3">
+                <label for="empresa" class="form-label">Empresa:</label>
+                <select class="form-select" id="empresa" required>
+                  <option value="">Selecione uma empresa</option>
+                </select>
+              </div>
+              
+              <div class="mb-3 d-none" id="subsidiary-container">
+                <label for="subsidiary" class="form-label">Filial:</label>
+                <select class="form-select" id="subsidiary">
+                  <option value="">Selecione uma filial (opcional)</option>
+                </select>
+              </div>
+              
+              <div class="mb-3">
+                <label for="colaborador" class="form-label">Técnico:</label>
+                <select class="form-select" id="colaborador" required>
+                  <option value="">Selecione um técnico</option>
+                </select>
+              </div>
+              
+              <div class="mb-3">
+                <label for="responsavel" class="form-label">Responsável no Local:</label>
+                <input type="text" class="form-control" id="responsavel" placeholder="Nome do responsável que atenderá o técnico">
+                <small class="form-text text-muted">Nome da pessoa que receberá o técnico no local do atendimento.</small>
+              </div>
+              
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label for="data" class="form-label">Data:</label>
+                  <input type="date" class="form-control" id="data" required>
+                </div>
+                <div class="col-md-6">
+                  <label for="hora" class="form-label">Hora:</label>
+                  <input type="time" class="form-control" id="hora" required>
+                </div>
+              </div>
+              
+              <div class="mb-3">
+                <label for="tempoSugerido" class="form-label">Tempo Sugerido (horas):</label>
+                <input type="number" class="form-control" id="tempoSugerido" min="0.5" max="24" step="0.5" placeholder="Ex: 2.5">
+                <small class="form-text text-muted">Tempo estimado em horas para conclusão da tarefa.</small>
+              </div>
+              
+              <div class="mb-3">
+                <label for="descricao" class="form-label">Descrição do Atendimento:</label>
+                <textarea class="form-control" id="descricao" rows="3" required></textarea>
+              </div>
+              
+              <div class="mb-3">
+                <label for="formulario" class="form-label">Formulário (opcional):</label>
+                <select class="form-select" id="formulario">
+                  <option value="">Nenhum formulário</option>
+                </select>
+                <small class="form-text text-muted">Selecione um formulário para ser preenchido pelo técnico ao finalizar a tarefa.</small>
+              </div>
+              
+              <div class="mb-3">
+                <label for="map" class="form-label">Localização da Tarefa:</label>
+                <div id="map" class="map-container" style="height: 300px;"></div>
+                <small class="form-text text-muted">Clique no mapa ou arraste o marcador para definir a localização.</small>
+                <input type="hidden" id="coordinates" name="coordinates">
+              </div>
+              
+              <div class="d-grid mt-4">
+                <button type="submit" class="btn btn-success">Criar Tarefa</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de Cadastro de Empresa -->
+    <div class="modal fade" id="companyModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header bg-success text-white">
+            <h5 class="modal-title">Cadastrar Nova Empresa</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <form id="companyForm">
+              <div class="mb-3">
+                <label for="parentCompany" class="form-label">Empresa Principal:</label>
+                <select class="form-select" id="parentCompany">
+                  <option value="">Nenhuma (Empresa Principal)</option>
+                </select>
+                <small class="form-text text-muted">Deixe em branco para cadastrar uma nova empresa principal. Selecione uma empresa para cadastrar uma filial.</small>
+              </div>
+              
+              <div class="row mb-3">
+                <div class="col-md-8">
+                  <label for="companyName" class="form-label">Nome da Empresa:</label>
+                  <input type="text" class="form-control" id="companyName" required>
+                </div>
+                
+                <div class="col-md-4">
+                  <label for="companyCnpj" class="form-label">CNPJ (opcional):</label>
+                  <input type="text" class="form-control" id="companyCnpj" placeholder="00.000.000/0000-00">
+                </div>
+              </div>
+              
+              <div class="mb-3">
+                <label for="companyAddress" class="form-label">Endereço:</label>
+                <input type="text" class="form-control" id="companyAddress" required>
+              </div>
+              
+              <div class="mb-3">
+                <label for="companyPhone" class="form-label">Telefone:</label>
+                <input type="tel" class="form-control" id="companyPhone" required>
+              </div>
+              
+              <div class="mb-3">
+                <label for="company-map" class="form-label">Localização (opcional):</label>
+                <div id="company-map" class="map-container" style="height: 250px;"></div>
+                <small class="form-text text-muted">Clique no mapa ou arraste o marcador para definir a localização.</small>
+                <input type="hidden" id="companyCoordinates" name="companyCoordinates">
+              </div>
+              
+              <div class="d-grid">
+                <button type="submit" class="btn btn-success">Cadastrar Empresa</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de Cadastro de Funcionário -->
+    <div class="modal fade" id="employeeModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header bg-success text-white">
+            <h5 class="modal-title">Cadastrar Novo Técnico</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <form id="employeeForm">
+              <div class="mb-3">
+                <label for="employeeName" class="form-label">Nome do Técnico:</label>
+                <input type="text" class="form-control" id="employeeName" required>
+              </div>
+              <div class="mb-3">
+                <label for="employeePosition" class="form-label">Cargo:</label>
+                <input type="text" class="form-control" id="employeePosition" required>
+              </div>
+              <div class="mb-3">
+                <label for="employeePhone" class="form-label">Telefone:</label>
+                <input type="tel" class="form-control" id="employeePhone" required>
+              </div>
+              <div class="d-grid">
+                <button type="submit" class="btn btn-success">Cadastrar Técnico</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de Gerenciamento de Técnicos -->
+    <div class="modal fade" id="manageEmployeesModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header bg-success text-white">
+            <h5 class="modal-title">Gerenciar Técnicos</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="table-responsive">
+              <table class="table table-hover">
+                <thead>
+                  <tr>
+                    <th>Nome</th>
+                    <th>Cargo</th>
+                    <th>Telefone</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="employeesTableBody">
+                  <!-- Técnicos serão carregados aqui -->
+                </tbody>
+              </table>
+            </div>
+            <div id="no-employees-message" class="text-center py-4 d-none">
+              <p class="text-muted">Nenhum técnico cadastrado</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Data Service -->
+    <script src="/src/data-service.js"></script>
+    <!-- Custom JS -->
+    <script src="/src/admin.js"></script>
+    
+    <!-- IMPORTANT: DO NOT REMOVE THIS SCRIPT TAG OR THIS VERY COMMENT! -->
+    <script src="https://cdn.gpteng.co/gptengineer.js" type="module"></script>
+  </body>
+</html>

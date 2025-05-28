@@ -1,0 +1,158 @@
+
+body {
+  background-color: #e8f5e9;
+  font-family: 'Arial', sans-serif;
+  min-height: 100vh;
+  padding-bottom: 20px;
+}
+
+.task-card {
+  background-color: #f5f8f5;
+  border-radius: 15px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 25px;
+  margin: 20px 0;
+  border: 1px solid #ddd;
+}
+
+h2 {
+  color: #2e7d32;
+  font-weight: bold;
+  font-size: 1.5rem;
+}
+
+.form-label {
+  color: #2e7d32;
+  font-weight: 500;
+}
+
+.form-control {
+  border: 1px solid #c8e6c9;
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+
+.form-control:focus {
+  border-color: #4caf50;
+  box-shadow: 0 0 0 0.25rem rgba(76, 175, 80, 0.25);
+}
+
+.map-container {
+  border-radius: 8px;
+  border: 1px solid #c8e6c9;
+  overflow: hidden;
+  margin-top: 5px;
+  width: 100%;
+}
+
+.btn-success {
+  background-color: #2e7d32;
+  border-color: #2e7d32;
+  font-weight: 500;
+  padding: 10px;
+}
+
+.btn-success:hover {
+  background-color: #1b5e20;
+  border-color: #1b5e20;
+}
+
+/* Make the date input more similar to other inputs */
+input[type="date"], input[type="time"] {
+  height: 38px;
+}
+
+/* Task list styles */
+.task-item {
+  border-left: 4px solid #2e7d32;
+  transition: all 0.2s ease;
+}
+
+.task-item:hover {
+  background-color: #f1f8e9;
+  transform: translateX(3px);
+}
+
+.task-item .task-time {
+  color: #2e7d32;
+  font-weight: 500;
+}
+
+.task-item .task-location {
+  color: #689f38;
+  font-size: 0.85rem;
+}
+
+/* Status badges */
+.status-badge {
+  padding: 0.35em 0.65em;
+  font-size: 0.75em;
+  font-weight: 500;
+  border-radius: 50rem;
+  display: inline-block;
+  text-align: center;
+}
+
+.status-pending {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.status-progress {
+  background-color: #cce5ff;
+  color: #004085;
+}
+
+.status-completed {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+/* Responsive design enhancements */
+@media (max-width: 768px) {
+  .task-card {
+    padding: 15px;
+  }
+  
+  .map-container {
+    height: 250px !important;
+  }
+  
+  .navbar-brand {
+    font-size: 1.1rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .container-fluid {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+  
+  .task-card {
+    margin: 10px 0;
+  }
+  
+  h2 {
+    font-size: 1.3rem;
+  }
+  
+  .map-container {
+    height: 200px !important;
+  }
+}
+
+/* Table enhancements */
+.table-hover tbody tr:hover {
+  background-color: #f1f8e9;
+}
+
+.table-success th {
+  background-color: #2e7d32;
+  color: white;
+}
+
+/* Modal customizations */
+.modal-header.bg-success {
+  background-color: #2e7d32 !important;
+}

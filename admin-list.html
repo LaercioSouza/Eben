@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Listar Tarefas - Painel de Administrador</title>
+    <meta name="description" content="Listagem de tarefas do sistema" />
+    <meta name="author" content="Task Generator" />
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/src/styles.css">
+
+    <style>
+      /* Status badges */
+      .status-badge {
+        display: inline-block;
+        padding: 0.25em 0.6em;
+        font-size: 0.75em;
+        font-weight: 700;
+        line-height: 1;
+        text-align: center;
+        white-space: nowrap;
+        vertical-align: baseline;
+        border-radius: 0.25rem;
+      }
+      
+      .status-pending {
+        background-color: #ffc107;
+        color: #212529;
+      }
+      
+      .status-warning {
+        background-color: #fd7e14;
+        color: white;
+      }
+      
+      .status-progress {
+        background-color: #0d6efd;
+        color: white;
+      }
+      
+      .status-paused {
+        background-color: #0dcaf0;
+        color: #212529;
+      }
+      
+      .status-completed {
+        background-color: #198754;
+        color: white;
+      }
+      
+      /* Make table rows clickable */
+      .task-row {
+        cursor: pointer;
+      }
+      
+      .task-row:hover {
+        background-color: rgba(0,0,0,0.05);
+      }
+      
+      .collapsible-content {
+        display: none;
+      }
+      .collapsible-content.show {
+        display: block;
+      }
+      .collapsible-trigger {
+        cursor: pointer;
+        user-select: none;
+      }
+      .collapsible-trigger:hover {
+        background-color: rgba(0,0,0,0.05);
+      }
+    </style>
+  </head>
+
+  <body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-success">
+      <div class="container-fluid">
+        <a class="navbar-brand" href="#">Sistema de Tarefas</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav me-auto">
+            <li class="nav-item">
+              <a class="nav-link" href="admin.html">Criar Tarefas</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link active" href="admin-list.html">Listar Tarefas</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="admin-forms.html">Gerenciar Formulários</a>
+            </li>
+          </ul>
+          <ul class="navbar-nav">
+            <li class="nav-item">
+              <a class="nav-link" href="index.html">Sair</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <div class="container-fluid py-3">
+      <div class="task-card">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <h2 class="mb-0">LISTA DE TAREFAS</h2>
+          <div>
+            <a href="admin.html" class="btn btn-success"><i class="bi bi-plus-lg"></i> Nova Tarefa</a>
+          </div>
+        </div>
+        
+        <!-- Filter controls -->
+        <div class="row mb-3">
+          <div class="col-md-4">
+            <label for="date-filter" class="form-label">Filtrar por Data:</label>
+            <input type="date" class="form-control" id="date-filter">
+          </div>
+          <div class="col-md-4">
+            <label for="status-filter" class="form-label">Filtrar por Status:</label>
+            <select class="form-select" id="status-filter">
+              <option value="all">Todos os Status</option>
+              <option value="pending">Pendentes</option>
+              <option value="in_progress">Em Andamento</option>
+              <option value="completed">Concluídas</option>
+            </select>
+          </div>
+          <div class="col-md-4 d-flex align-items-end">
+            <button id="reset-filters" class="btn btn-outline-secondary">Limpar Filtros</button>
+          </div>
+        </div>
+        
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead class="table-success">
+              <tr>
+                <th>Empresa</th>
+                <th>Colaborador</th>
+                <th>Data</th>
+                <th>Hora</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="tasks-table-body">
+              <!-- Os dados das tarefas serão carregados dinamicamente via JavaScript -->
+            </tbody>
+          </table>
+        </div>
+        
+        <div id="no-tasks-message" class="text-center py-4 d-none">
+          <p class="text-muted">Nenhuma tarefa cadastrada</p>
+          <a href="admin.html" class="btn btn-success mt-2">Criar Primeira Tarefa</a>
+        </div>
+        
+        <!-- Export PDF button moved to bottom -->
+        <div class="d-flex justify-content-end mt-4">
+          <button id="exportPdfBtn" class="btn btn-outline-primary">
+            <i class="bi bi-file-earmark-pdf"></i> Exportar Relatório Geral
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Task detail modal -->
+    <div class="modal fade" id="taskDetailModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+          <div class="modal-header bg-success text-white">
+            <h5 class="modal-title">Detalhes da Tarefa</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="row">
+              <div class="col-md-6">
+                <div id="task-detail-content">
+                  <!-- Conteúdo será preenchido dinamicamente -->
+                </div>
+                
+                <!-- Histórico Colapsável -->
+                <div class="mt-4">
+                  <div class="collapsible-trigger d-flex justify-content-between align-items-center p-2 border rounded" id="historyToggle">
+                    <h6 class="mb-0">Histórico da Tarefa</h6>
+                    <i class="bi bi-chevron-down" id="historyIcon"></i>
+                  </div>
+                  <div class="collapsible-content mt-2" id="historyContent">
+                    <div id="task-history-list">
+                      <!-- Histórico será carregado aqui -->
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Formulário de Resposta -->
+                <div id="form-responses-section" class="mt-4" style="display: none;">
+                  <h6>Respostas do Formulário</h6>
+                  <div id="form-responses-content">
+                    <!-- Respostas do formulário serão carregadas aqui -->
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div id="detail-map" class="map-container" style="height: 250px;"></div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            <button type="button" class="btn btn-primary" id="btn-export-individual-pdf">
+              <i class="bi bi-file-earmark-pdf"></i> Exportar PDF Individual
+            </button>
+            <button type="button" class="btn btn-danger" id="btn-delete-task">Excluir Tarefa</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- jsPDF for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- Data Service -->
+    <script src="/src/data-service.js"></script>
+    <!-- Custom JS -->
+    <script src="/src/admin-list.js"></script>
+    
+    <!-- IMPORTANT: DO NOT REMOVE THIS SCRIPT TAG OR THIS VERY COMMENT! -->
+    <script src="https://cdn.gpteng.co/gptengineer.js" type="module"></script>
+  </body>
+</html>
