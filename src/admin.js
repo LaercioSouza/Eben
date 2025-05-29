@@ -367,7 +367,7 @@ function loadForms() {
 // Save task using data service
 function saveTask(e) {
   e.preventDefault();
-  
+  /*
   // Get form values
   const empresaId = document.getElementById('empresa').value;
   const subsidiaryId = document.getElementById('subsidiary')?.value || null;
@@ -379,11 +379,27 @@ function saveTask(e) {
   const descricao = document.getElementById('descricao').value;
   const coordinates = document.getElementById('coordinates').value;
   const formularioId = document.getElementById('formulario').value || null;
-  
+  */
+
+  const empresa = document.getElementById('empresa').value;
+  const subsidiary = document.getElementById('subsidiary')?.value || null;
+  const colaborador = document.getElementById('colaborador').value;
+  const responsavel = document.getElementById('responsavel').value || '';
+  const data = document.getElementById('data').value;
+  const hora = document.getElementById('hora').value;
+  const tempoSugerido = document.getElementById('tempoSugerido').value || null;
+  const descricao = document.getElementById('descricao').value;
+  const coordinates = document.getElementById('coordinates').value;
+  const formulario = document.getElementById('formulario').value || null;
+
+
+  /*
+
   // Get companies, employees, and forms from data service
   const companies = window.dataService.getAll(window.dataService.DATA_TYPES.COMPANIES);
   const employees = window.dataService.getAll(window.dataService.DATA_TYPES.EMPLOYEES);
   const forms = window.dataService.getAll(window.dataService.DATA_TYPES.FORMS);
+  
   
   // Find company, employee, and form objects
   const empresa = companies.find(company => company.id === parseInt(empresaId));
@@ -391,32 +407,33 @@ function saveTask(e) {
   const colaborador = employees.find(employee => employee.id === parseInt(colaboradorId));
   const formulario = formularioId ? forms.find(form => form.id === parseInt(formularioId)) : null;
   
+  */
+
   if (!empresa || !colaborador) {
     alert('Por favor, selecione uma empresa e um técnico válidos');
     return;
   }
   
   // Display name (including subsidiary if selected)
+  /*
+
   const empresaNome = subsidiary 
     ? `${empresa.nome} - ${subsidiary.nome}` 
     : empresa.nome;
-  
+  */
   // Create task object
   const task = {
     id: Date.now(),
-    empresaId: parseInt(empresaId),
-    empresaNome: empresaNome,
-    filialId: subsidiaryId ? parseInt(subsidiaryId) : null,
-    colaboradorId: parseInt(colaboradorId),
-    colaboradorNome: colaborador.nome,
+    empresaid: empresa,
+    subsidiaria: subsidiary,
+    colaboradorid: colaborador,
     responsavel: responsavel,
     tempoSugerido: tempoSugerido ? parseFloat(tempoSugerido) : null,
-    data,
-    hora,
-    descricao,
-    coordinates,
-    formularioId: formularioId ? parseInt(formularioId) : null,
-    formularioNome: formulario ? formulario.name : null,
+    data: data,
+    hora: hora,
+    descricao: descricao,
+    coordinates: coordinates,
+    formularioNome: formulario,
     formularioResposta: null, // Will be filled when technician completes the form
     status: 'pendente', // initial status
     history: [
@@ -428,9 +445,31 @@ function saveTask(e) {
     ],
     createdAt: new Date().toISOString()
   };
+
+  fetch('https://localhost/EBEN/api/savetask.php', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify(task)
+})
+.then(response => response.json())
+.then(data => {
+  console.log('resposta do servidor:', data);
+  if (data.success) {
+    alert('Tarefa salva com sucesso!');
+  } else {
+    alert('Erro ao salvar a tarefa.' + (data.error || 'desconhecido'));
+  }
+})
+.catch(error => {
+  console.error('Erro:', error);
+});
   
   // Save task using data service
   window.dataService.create(window.dataService.DATA_TYPES.TASKS, task);
+
+  /*
   
   // Show success message
   const formMessage = formulario ? ` com formulário "${formulario.name}"` : '';
@@ -438,6 +477,8 @@ function saveTask(e) {
   const tempoMessage = tempoSugerido ? ` (Tempo sugerido: ${tempoSugerido}h)` : '';
   alert(`Tarefa para ${empresaNome} criada com sucesso${formMessage}${responsavelMessage}${tempoMessage}!`);
   
+  */
+
   // Reset form
   this.reset();
   setTodayAsDefault();
