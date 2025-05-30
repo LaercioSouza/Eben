@@ -1,0 +1,23 @@
+{
+    "id": 1748609825142,
+    "empresaid": "1748432155151",
+    "subsidiaria": null,
+    "colaboradorid": "1748433023399",
+    "responsavel": "James ",
+    "tempoSugerido": 2.5,
+    "data": "2025-05-30",
+    "hora": "22:00",
+    "descricao": "nenhuma",
+    "coordinates": "-41.7734,-2.9055",
+    "formularioNome": null,
+    "formularioResposta": null,
+    "status": "pendente",
+    "history": [
+        {
+            "timestamp": "2025-05-30T12:57:05.142Z",
+            "action": "criada",
+            "coordinates": "-41.7734,-2.9055"
+        }
+    ],
+    "createdAt": "2025-05-30T12:57:05.142Z"
+}
