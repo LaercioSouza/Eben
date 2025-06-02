@@ -1,3 +1,4 @@
+
 <?php
 
 // Cabeçalhos CORS e Content-Type
@@ -21,15 +22,54 @@ try {
     exit;
 }
 
-// Obtenção dos dados JSON enviados
-$input = json_decode(file_get_contents('php://input'), true);
+
+$data= json_decode(file_get_contents('php://input'), true);
+  if (!$data) {
+  echo json_encode(['status' => 'erro', 'mensagem' => 'Dados ausentes!']);
+  exit;
+}
+$sql = "INSERT INTO task (id, empresa_id, colaborador_id, responsavel
+, tempo_sugerido, data_tarefa, hora_tarefa, descricao, coordenadas,
+formulario_id, status, criado_em) values (:id, :empresa_id, :colaborador_id
+, :responsavel, :tempo_sugerido, :data_tarefa, :hora_tarefa, :descricao,
+:coordenadas, :formulario_id, :status, :criado_em)";
+$stmt = $pdo->prepare($sql);
+$success = $stmt->execute([
+  ':id' => $data['id'],
+  ':empresa_id' => $data['empresaid'],
+  ':colaborador_id' => $data['colaboradorid'],
+  ':responsavel' => $data['responsavel'],
+  ':tempo_sugerido' => $data['tempoSugerido'],
+  ':data_tarefa' => $data['data'],
+  ':hora_tarefa' => $data['hora'],
+  ':descricao' => $data['descricao'],
+  ':coordenadas' => $data['coordinates'],
+  ':formulario_id' => $data['formularioNome'],
+  ':status' => $data['status'],
+  ':criado_em' => $data['createdAt']
+]);
+
+if ($success) {
+  echo json_encode(['status' => 'sucesso']);
+} else {
+  echo json_encode(['status' => 'erro', 'mensagem' => 'Falha ao inserir no banco']);
+}
+
+//SELECT nome FROM companies, task WHERE companies.id = task.empresa_id;
+
+
+
+
+
+
 
 
 // Valores obrigatórios
+/*
+
 
 $empresaId = $input['empresaid'] ?? null;
 $colaboradorId = $input['colaboradorid'] ?? null;
-
 
 $stmt = $pdo->prepare("SELECT 
     (SELECT nome FROM companies WHERE id = :empresaid) AS companies_nome,
@@ -39,27 +79,11 @@ $stmt = $pdo->prepare("SELECT
 $stmt->execute([
     ':empresaid' => $empresaId,
     ':colaboradorid' => $colaboradorId
-]
-  
-
-);
+]);
 
 $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
-// ⚠️ Verifique se os resultados realmente existem
-$empresaNome = $result['companies_nome'] ?? '';
-$colaboradorNome = $result['employees_nome'] ?? '';
-
-
-
-
-if ($success) {
-  echo json_encode(['status' => 'sucesso']);
-} else {
-  echo json_encode(['status' => 'erro', 'mensagem' => 'Falha ao inserir no banco']);
-}
-
-
+*/
 
 
 

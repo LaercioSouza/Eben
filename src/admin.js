@@ -456,11 +456,10 @@ function saveTask(e) {
 .then(response => response.json())
 .then(data => {
   console.log('resposta do servidor:', data);
-  if (data.success) {
-    alert('Tarefa salva com sucesso!');
-  } else {
-    alert('Erro ao salvar a tarefa.' + (data.error || 'desconhecido'));
+  if(data){
+    alert(`tarefa salva com sucesso!`);
   }
+  
 })
 .catch(error => {
   console.error('Erro:', error);
@@ -529,6 +528,7 @@ function saveCompany(e) {
        .then(response => response.json())
        .then(data => {
         console.log('Resposta do servidor:', data);
+        alert(`Tarefa salva com sucesso!.`);
       })
 .catch(error => {
   console.error('Erro ao enviar:', error);
