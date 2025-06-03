@@ -19,6 +19,51 @@ function initApp() {
 function loadTasks() {
   const tasksTableBody = document.getElementById('tasks-table-body');
   const noTasksMessage = document.getElementById('no-tasks-message');
+   fetch("https://localhost/EBEN/api/tasklist.php")
+  .then(response => response.json())
+  .then(task_json => {
+    // Aqui você pode trabalhar com os dados retornados
+    console.log(task_json);
+    tasks = applyFilters(task_json);
+    if (tasks.length === 0) {
+    tasksTableBody.innerHTML = '';
+    noTasksMessage.classList.remove('d-none');
+    return;
+    }
+    noTasksMessage.classList.add('d-none');
+
+    task_json.forEach(task => {
+    tasksTableBody.innerHTML = task_json.map(task => {
+    const taskDate = new Date(task.data_tarefa);
+    const formattedDate = taskDate.toLocaleDateString('pt-BR');
+    const statusClass = getStatusClass(task.status);
+    
+    
+    return `
+      <tr class="task-row" onclick="showTaskDetail(${task.id})">
+        <td>${task.empresa}</td>
+        <td>${task.colaborador}</td>
+        <td>${formattedDate}</td>
+        <td>${task.hora_tarefa}</td>
+        <td><span class="status-badge status-${statusClass}">${getStatusText(task.status)}</span></td>
+      </tr>
+    `;
+  }).join('');
+
+
+    }) 
+
+    
+    
+
+
+  })
+  .catch(error => {
+    console.error('Erro ao carregar empresas:', error);
+  });
+
+
+  /*
   
   // Get tasks from data service
   let tasks = window.dataService.getAll(window.dataService.DATA_TYPES.TASKS);
@@ -50,7 +95,9 @@ function loadTasks() {
       </tr>
     `;
   }).join('');
+  */
 }
+
 
 // Apply filters to tasks
 function applyFilters(tasks) {
@@ -164,6 +211,24 @@ function initDetailMap(coordinates) {
 }
 
 function showTaskDetail(taskId) {
+  const payload = { id: taskId };  
+ 
+  fetch("https://localhost/EBEN/api/showdetailstask.php", {
+         method: 'POST',
+         headers: {
+        'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+})
+       .then(response => response.json())
+       .then(data => {
+        console.log('Resposta do servidor:', data);
+        
+      })
+.catch(error => {
+  console.error('Erro na consulta:', error);
+});
+  
   const task = window.dataService.getById(window.dataService.DATA_TYPES.TASKS, taskId);
   if (!task) return;
   
