@@ -32,7 +32,11 @@ $sql = "SELECT
     t.id,
     t.data_tarefa,
     t.hora_tarefa,
-    t.status
+    t.status,
+    t.tempo_sugerido,
+    t.responsavel,
+    t.descricao,
+    t.formulario_id
  FROM 
     task t
  JOIN 

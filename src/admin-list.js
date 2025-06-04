@@ -224,11 +224,10 @@ function showTaskDetail(taskId) {
        .then(data => {
         console.log('Resposta do servidor:', data);
         
-      })
-.catch(error => {
-  console.error('Erro na consulta:', error);
-});
-  
+  const task = data;
+  let timeComparison = '';
+ 
+  /*
   const task = window.dataService.getById(window.dataService.DATA_TYPES.TASKS, taskId);
   if (!task) return;
   
@@ -262,19 +261,20 @@ function showTaskDetail(taskId) {
       </div>
     `;
   }
+    */
   
   const content = `
     <div class="mb-3">
       <h6>Informações Básicas</h6>
-      <p><strong>Empresa:</strong> ${task.empresaNome}</p>
-      <p><strong>Técnico:</strong> ${employee ? employee.nome : 'N/A'}</p>
+      <p><strong>Empresa:</strong> ${task.empresa}</p>
+      <p><strong>Técnico:</strong> ${task ? task.colaborador : 'N/A'}</p>
       ${task.responsavel ? `<p><strong>Responsável no Local:</strong> ${task.responsavel}</p>` : ''}
-      <p><strong>Data:</strong> ${task.data}</p>
-      <p><strong>Hora:</strong> ${task.hora}</p>
-      ${task.tempoSugerido ? `<p><strong>Tempo Sugerido:</strong> ${task.tempoSugerido}h</p>` : ''}
+      <p><strong>Data:</strong> ${task.data_tarefa}</p>
+      <p><strong>Hora:</strong> ${task.hora_tarefa}</p>
+      ${task.tempo_sugerido ? `<p><strong>Tempo Sugerido:</strong> ${task.tempo_sugerido}h</p>` : ''}
       <p><strong>Status:</strong> <span class="status-badge status-${getStatusClass(task.status)}">${getStatusText(task.status)}</span></p>
       <p><strong>Descrição:</strong> ${task.descricao}</p>
-      ${task.formularioNome ? `<p><strong>Formulário:</strong> ${task.formularioNome}</p>` : ''}
+      ${task.formulario_id ? `<p><strong>Formulário:</strong> ${task.formulario_id}</p>` : ''}
       ${timeComparison}
     </div>
     
@@ -323,6 +323,10 @@ function showTaskDetail(taskId) {
   
   // Set up collapsible history
   setupCollapsibleHistory();
+  
+  }).catch(error => {
+    console.error('Erro na consulta:', error);
+});
 }
 
 function initPerformanceCharts(task, efficiency) {

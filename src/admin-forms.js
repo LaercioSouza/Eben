@@ -162,13 +162,33 @@ function saveForm(e) {
   
   const formName = document.getElementById('formName').value;
   const formDescription = document.getElementById('formDescription').value;
+  
   const questions = collectQuestions();
+  const questoes = questions;
+  questoes.options = id_formulario;
+  /*
+  fetch("https://localhost/EBEN/api/savequestions.php", {
+         method: 'POST',
+         headers: {
+        'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(questoes)
+        })
+       .then(response => response.json())
+       .then(data => {
+        console.log('Resposta do servidor:', data);
+        })
+        .catch(error => {
+        console.error('Erro ao enviar:', error);
+});
+*/
+
   
   if (questions.length === 0) {
     alert('Adicione pelo menos uma pergunta ao formulário.');
     return;
   }
-  
+ 
   const formData = {
     id: document.getElementById('createFormForm').dataset.editingId || Date.now(),
     name: formName,
@@ -177,6 +197,44 @@ function saveForm(e) {
     createdAt: new Date().toISOString()
   };
   
+  const formjson = {
+    id: document.getElementById('createFormForm').dataset.editingId || Date.now(),
+    name: formName,
+    description: formDescription,
+    createdAt: new Date().toISOString()
+  };
+  fetch("https://localhost/EBEN/api/saveform.php", {
+         method: 'POST',
+         headers: {
+        'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formjson)
+        })
+       .then(response => response.json())
+       .then(data => {
+        //console.log('Resposta do servidor:', data);
+        })
+        .catch(error => {
+        console.error('Erro ao enviar:', error);
+});
+/*
+fetch("https://localhost/EBEN/api/savequestions.php", {
+         method: 'POST',
+         headers: {
+        'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(questoes)
+        })
+       .then(response => response.json())
+       .then(data => {
+        console.log('Resposta do servidor:', data);
+        })
+        .catch(error => {
+        console.error('Erro ao enviar:', error);
+});
+*/
+  
+
   if (document.getElementById('createFormForm').dataset.editingId) {
     // Update existing form
     window.dataService.update(window.dataService.DATA_TYPES.FORMS, parseInt(formData.id), formData);
@@ -227,6 +285,9 @@ function collectQuestions() {
     
     questions.push(question);
   });
+
+  
+
   
   return questions;
 }
