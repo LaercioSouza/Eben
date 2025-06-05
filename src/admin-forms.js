@@ -38,6 +38,33 @@ function setupEventListeners() {
 
 // Load and display forms
 function loadForms() {
+
+  // Paramos aqui, inserir os forms na página direto do banco!
+
+  
+  fetch("https://localhost/EBEN/api/showallforms.php")
+     .then(response => response.json())
+     .then(forms => {
+      console.log(forms);
+
+      const formsList = document.getElementById('forms-list');
+      if (forms.total === 0) {
+      formsList.innerHTML = `
+      <div class="text-center py-4 text-muted">
+        <p>Nenhum formulário criado</p>
+      </div>
+    `;
+        return;
+      }
+
+      
+
+     })
+     .catch(error => {
+      console.error('Erro ao carregar formularios:', error)
+    });
+  
+  /* 
   const forms = window.dataService.getAll(window.dataService.DATA_TYPES.FORMS);
   const formsList = document.getElementById('forms-list');
   
@@ -70,6 +97,7 @@ function loadForms() {
       </div>
     </div>
   `).join('');
+  */
 }
 
 // Open modal for new form
@@ -165,7 +193,8 @@ function saveForm(e) {
   
   const questions = collectQuestions();
   const questoes = questions;
-  questoes.options = id_formulario;
+  
+  
   /*
   fetch("https://localhost/EBEN/api/savequestions.php", {
          method: 'POST',
@@ -188,7 +217,11 @@ function saveForm(e) {
     alert('Adicione pelo menos uma pergunta ao formulário.');
     return;
   }
- 
+  const id_form = document.getElementById('createFormForm').dataset.editingId || Date.now();
+  questoes.forEach(question => {
+  question.id_formulario = id_form;
+});
+
   const formData = {
     id: document.getElementById('createFormForm').dataset.editingId || Date.now(),
     name: formName,
@@ -198,7 +231,7 @@ function saveForm(e) {
   };
   
   const formjson = {
-    id: document.getElementById('createFormForm').dataset.editingId || Date.now(),
+    id: id_form,
     name: formName,
     description: formDescription,
     createdAt: new Date().toISOString()
@@ -217,7 +250,7 @@ function saveForm(e) {
         .catch(error => {
         console.error('Erro ao enviar:', error);
 });
-/*
+
 fetch("https://localhost/EBEN/api/savequestions.php", {
          method: 'POST',
          headers: {
@@ -232,7 +265,7 @@ fetch("https://localhost/EBEN/api/savequestions.php", {
         .catch(error => {
         console.error('Erro ao enviar:', error);
 });
-*/
+
   
 
   if (document.getElementById('createFormForm').dataset.editingId) {
