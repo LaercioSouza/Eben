@@ -528,7 +528,7 @@ function saveCompany(e) {
        .then(response => response.json())
        .then(data => {
         console.log('Resposta do servidor:', data);
-        alert(`Tarefa salva com sucesso!.`);
+        
       })
 .catch(error => {
   console.error('Erro ao enviar:', error);

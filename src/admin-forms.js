@@ -45,24 +45,43 @@ function loadForms() {
   fetch("https://localhost/EBEN/api/showallforms.php")
      .then(response => response.json())
      .then(forms => {
-      console.log(forms);
-
+      
       const formsList = document.getElementById('forms-list');
-      if (forms.total === 0) {
+        if (!forms.formularios || forms.formularios.length === 0) {
       formsList.innerHTML = `
-      <div class="text-center py-4 text-muted">
-        <p>Nenhum formulário criado</p>
+        <div class="text-center py-4 text-muted">
+          <p>Nenhum formulário criado</p>
+        </div>
+      `;
+      return;
+    }
+    formsList.innerHTML = forms.formularios.map(form => `
+      <div class="list-group-item form-item" data-form-id="${form.id}" style="cursor: pointer;">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h6 class="mb-1">${form.titulo}</h6>
+            <small class="text-muted">${form.descricao || 'Sem descrição'}</small>
+            <br>
+            <small class="text-muted">${form.criado_em}</small>
+          </div>
+          <div>
+            <button class="btn btn-outline-primary btn-sm me-1 btn-edit-form" data-form-id="${form.id}">
+              <i class="bi bi-pencil"></i>
+            </button>
+            <button class="btn btn-outline-danger btn-sm btn-delete-form" data-form-id="${form.id}">
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+        </div>
       </div>
-    `;
-        return;
-      }
+    `).join('');
+  })
+  .catch(error => {
+    console.error('Erro ao carregar formularios:', error);
+  });
 
       
 
-     })
-     .catch(error => {
-      console.error('Erro ao carregar formularios:', error)
-    });
   
   /* 
   const forms = window.dataService.getAll(window.dataService.DATA_TYPES.FORMS);
@@ -327,6 +346,23 @@ function collectQuestions() {
 
 // Preview form
 function previewForm(formId) {
+
+  const idSelect = { id: formId };  
+ 
+  fetch("https://localhost/EBEN/api/showformdescription.php", {
+         method: 'POST',
+         headers: {
+        'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(idSelect)
+        })
+       .then(response => response.json())
+       .then(data => {
+        console.log('Resposta do servidor:', data);
+    }).catch(error => {
+    console.error('Erro na consulta:', error);
+});
+
   const form = window.dataService.getById(window.dataService.DATA_TYPES.FORMS, parseInt(formId));
   if (!form) return;
   
@@ -380,6 +416,7 @@ function previewForm(formId) {
 
 // Hide preview
 function hidePreview() {
+  
   document.getElementById('form-preview').classList.add('d-none');
 }
 
