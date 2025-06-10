@@ -42,7 +42,7 @@ function loadForms() {
   // Paramos aqui, inserir os forms na página direto do banco!
 
   
-  fetch("https://localhost/EBEN/api/showallforms.php")
+      fetch("https://localhost/EBEN/api/showallforms.php")
      .then(response => response.json())
      .then(forms => {
       
@@ -286,7 +286,7 @@ fetch("https://localhost/EBEN/api/savequestions.php", {
 });
 
   
-
+  /*
   if (document.getElementById('createFormForm').dataset.editingId) {
     // Update existing form
     window.dataService.update(window.dataService.DATA_TYPES.FORMS, parseInt(formData.id), formData);
@@ -296,6 +296,7 @@ fetch("https://localhost/EBEN/api/savequestions.php", {
     window.dataService.create(window.dataService.DATA_TYPES.FORMS, formData);
     alert('Formulário criado com sucesso!');
   }
+  */
   
   // Close modal and reload forms
   const modal = bootstrap.Modal.getInstance(document.getElementById('formModal'));
@@ -347,6 +348,73 @@ function collectQuestions() {
 // Preview form
 function previewForm(formId) {
 
+  const idSelect = { id: formId };
+
+fetch("https://localhost/EBEN/api/showformdescription.php", {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify(idSelect)
+})
+.then(response => response.json())
+.then(data => {
+  console.log('Resposta do servidor:', data);
+
+  if (!data) return;
+
+  const previewContainer = document.getElementById('form-preview');
+  const previewContent = document.getElementById('preview-content');
+
+  let html = `<h5>${data.titulo_formulario}</h5>`;
+  if (data.descricao_formulario) {
+    html += `<p class="text-muted">${data.descricao_formulario}</p>`;
+  }
+
+  data.perguntas.forEach(question => {
+    html += `<div class="mb-3">`;
+    html += `<label class="form-label">${question.texto} ${question.obrigatoria === "1" ? '<span class="text-danger">*</span>' : ''}</label>`;
+
+    switch (question.tipo) {
+      case 'text':
+        html += `<input type="text" class="form-control" disabled>`;
+        break;
+      case 'textarea':
+        html += `<textarea class="form-control" rows="3" disabled></textarea>`;
+        break;
+      case 'checkbox':
+        question.alternativas.forEach(option => {
+          html += `
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" disabled>
+              <label class="form-check-label">${option.texto_alternative}</label>
+            </div>
+          `;
+        });
+        break;
+      case 'radio':
+        question.alternativas.forEach(option => {
+          html += `
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="preview_q${question.id_pergunta}" disabled>
+              <label class="form-check-label">${option.texto_alternative}</label>
+            </div>
+          `;
+        });
+        break;
+    }
+
+    html += `</div>`;
+  });
+
+  previewContent.innerHTML = html;
+  previewContainer.classList.remove('d-none');
+})
+.catch(error => {
+  console.error('Erro na consulta:', error);
+});
+
+/*
   const idSelect = { id: formId };  
  
   fetch("https://localhost/EBEN/api/showformdescription.php", {
@@ -412,6 +480,7 @@ function previewForm(formId) {
   
   previewContent.innerHTML = html;
   previewContainer.classList.remove('d-none');
+  */
 }
 
 // Hide preview
@@ -422,6 +491,66 @@ function hidePreview() {
 
 // Edit form
 function editForm(formId) {
+  console.log("clicaram");
+
+  const idSelect = { id: formId };
+
+  fetch("https://localhost/EBEN/api/showformdescription.php", {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(idSelect)
+  })
+  .then(response => response.json())
+  .then(form => {
+    console.log('Formulário carregado para edição:', form);
+
+    // Preencher os campos do formulário
+    document.getElementById('formName').value = form.titulo_formulario;
+    document.getElementById('formDescription').value = form.descricao_formulario || '';
+    document.getElementById('createFormForm').dataset.editingId = form.id_formulario;
+
+    // Limpar as perguntas existentes
+    const container = document.getElementById('questions-container');
+    container.innerHTML = '';
+
+    form.perguntas.forEach(pergunta => {
+      addQuestion();
+      const questionItem = container.lastElementChild;
+
+      questionItem.querySelector('.question-text').value = pergunta.texto;
+      questionItem.querySelector('.question-type').value = pergunta.tipo;
+      questionItem.querySelector('.question-required').checked = pergunta.obrigatoria === '1';
+
+      if ((pergunta.tipo === 'checkbox' || pergunta.tipo === 'radio') && pergunta.alternativas.length > 0) {
+        toggleOptionsContainer(questionItem.querySelector('.question-type'));
+
+        const optionsList = questionItem.querySelector('.options-list');
+        optionsList.innerHTML = '';
+
+        pergunta.alternativas.forEach(alternativa => {
+          addOption(questionItem.querySelector('.add-option'));
+          const lastOption = optionsList.lastElementChild;
+          lastOption.querySelector('.option-text').value = alternativa.texto_alternative;
+        });
+      }
+    });
+
+    document.getElementById('formModalTitle').textContent = 'Editar Formulário';
+
+    
+    const modal = new bootstrap.Modal(document.getElementById('formModal'));
+    
+    modal.show();
+  
+  })
+  .catch(error => {
+    console.error('Erro ao buscar dados do formulário:', error);
+  });
+
+  /*
+
   const form = window.dataService.getById(window.dataService.DATA_TYPES.FORMS, parseInt(formId));
   if (!form) return;
   
@@ -460,7 +589,56 @@ function editForm(formId) {
   
   const modal = new bootstrap.Modal(document.getElementById('formModal'));
   modal.show();
+
+  */
 }
+
+function salvarFormularioEditado() {
+  const formId = document.getElementById('createFormForm').dataset.editingId;
+  const titulo = document.getElementById('formName').value;
+  const descricao = document.getElementById('formDescription').value;
+  
+  const perguntas = [];
+  document.querySelectorAll('#questions-container .question-item').forEach(item => {
+    const texto = item.querySelector('.question-text').value;
+    const tipo = item.querySelector('.question-type').value;
+    const obrigatoria = item.querySelector('.question-required').checked ? '1' : '0';
+
+    const alternativas = [];
+    if (tipo === 'checkbox' || tipo === 'radio') {
+      item.querySelectorAll('.option-text').forEach(opt => {
+        alternativas.push({ texto_alternative: opt.value });
+      });
+    }
+
+    perguntas.push({ texto, tipo, obrigatoria, alternativas });
+  });
+
+  fetch("https://localhost/EBEN/api/updateform.php", {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      id_formulario: formId,
+      titulo_formulario: titulo,
+      descricao_formulario: descricao,
+      perguntas: perguntas
+    })
+  })
+  .then(response => response.json())
+  .then(result => {
+    if (result.sucesso) {
+      alert('Formulário atualizado com sucesso!');
+      location.reload();
+    } else {
+      alert('Erro ao atualizar: ' + result.erro);
+    }
+  });
+   
+ 
+}
+  
 
 // Delete form
 function deleteForm(formId) {

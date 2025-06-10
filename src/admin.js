@@ -343,6 +343,43 @@ function loadEmployees() {
 
 // Load forms from data service
 function loadForms() {
+
+
+  fetch("https://localhost/EBEN/api/showallforms.php")
+  .then(response => response.json())
+  .then(data => {
+    console.log('Formulários carregados:', data);
+
+    const formularioSelect = document.getElementById('formulario');
+    if (!formularioSelect) return;
+
+    // Limpa opções anteriores
+    formularioSelect.innerHTML = '<option value="">Nenhum formulário</option>';
+
+    // Adiciona os formulários recebidos
+    data.formularios.forEach(form => {
+      const option = document.createElement('option');
+      option.value = form.id;
+      option.textContent = form.titulo;
+      formularioSelect.appendChild(option);
+    });
+  })
+  .catch(error => {
+    console.error('Erro ao carregar formulários:', error);
+  });
+
+
+  /*
+  fetch("https://localhost/EBEN/api/showallforms.php")
+     .then(response => response.json())
+     .then(forms => {
+      console.log(forms)
+      
+      })
+  .catch(error => {
+    console.error('Erro ao carregar formularios:', error);
+  });
+
   const formularioSelect = document.getElementById('formulario');
   if (!formularioSelect) return;
   
@@ -353,7 +390,7 @@ function loadForms() {
   
   // Get forms from data service
   const forms = window.dataService.getAll(window.dataService.DATA_TYPES.FORMS);
-  console.log('Forms loaded:', forms);
+  //console.log('Forms loaded:', forms);
   
   // Add forms
   forms.forEach(form => {
@@ -362,6 +399,8 @@ function loadForms() {
     option.textContent = form.name;
     formularioSelect.appendChild(option);
   });
+*/
+  
 }
 
 // Save task using data service
