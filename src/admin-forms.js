@@ -214,24 +214,6 @@ function saveForm(e) {
   const questoes = questions;
   
   
-  /*
-  fetch("https://localhost/EBEN/api/savequestions.php", {
-         method: 'POST',
-         headers: {
-        'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(questoes)
-        })
-       .then(response => response.json())
-       .then(data => {
-        console.log('Resposta do servidor:', data);
-        })
-        .catch(error => {
-        console.error('Erro ao enviar:', error);
-});
-*/
-
-  
   if (questions.length === 0) {
     alert('Adicione pelo menos uma pergunta ao formulário.');
     return;
@@ -240,14 +222,7 @@ function saveForm(e) {
   questoes.forEach(question => {
   question.id_formulario = id_form;
 });
-
-  const formData = {
-    id: document.getElementById('createFormForm').dataset.editingId || Date.now(),
-    name: formName,
-    description: formDescription,
-    questions: questions,
-    createdAt: new Date().toISOString()
-  };
+  
   
   const formjson = {
     id: id_form,
@@ -256,34 +231,34 @@ function saveForm(e) {
     createdAt: new Date().toISOString()
   };
   fetch("https://localhost/EBEN/api/saveform.php", {
-         method: 'POST',
-         headers: {
-        'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(formjson)
-        })
-       .then(response => response.json())
-       .then(data => {
-        //console.log('Resposta do servidor:', data);
-        })
-        .catch(error => {
-        console.error('Erro ao enviar:', error);
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(formjson)
+})
+.then(response => response.json())
+.then(data => {
+  console.log('Formulário salvo:', data);
+
+  // Só agora, depois que o formulário foi salvo com sucesso, enviamos as questões:
+  return fetch("https://localhost/EBEN/api/savequestions.php", {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(questoes)
+  });
+})
+.then(response => response.json())
+.then(data => {
+  console.log('Perguntas salvas:', data);
+  if(data){
+    loadForms();
+    hidePreview();
+    alert(`Formulário salvo com sucesso!`);
+  }
+})
+.catch(error => {
+  console.error('Erro ao enviar:', error);
 });
 
-fetch("https://localhost/EBEN/api/savequestions.php", {
-         method: 'POST',
-         headers: {
-        'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(questoes)
-        })
-       .then(response => response.json())
-       .then(data => {
-        console.log('Resposta do servidor:', data);
-        })
-        .catch(error => {
-        console.error('Erro ao enviar:', error);
-});
 
   
   /*
@@ -301,8 +276,7 @@ fetch("https://localhost/EBEN/api/savequestions.php", {
   // Close modal and reload forms
   const modal = bootstrap.Modal.getInstance(document.getElementById('formModal'));
   modal.hide();
-  loadForms();
-  hidePreview();
+  
 }
 
 // Collect questions from form
@@ -642,10 +616,35 @@ function salvarFormularioEditado() {
 
 // Delete form
 function deleteForm(formId) {
+  const confirmDelete = confirm("Tem certeza que deseja deletar este formulário? Esta ação não pode ser desfeita.");
+  if (!confirmDelete) return; // Se o usuário cancelar, para aqui
+
+  const idSelect = { id: formId };
+  fetch("https://localhost/EBEN/api/delete_form.php", {
+         method: 'POST',
+         headers: {
+        'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(idSelect)
+        })
+       .then(response => response.json())
+       .then(data => {
+        console.log('Resposta do servidor:', data);
+        loadForms();
+        hidePreview();
+        })
+        .catch(error => {
+        console.error('Erro ao enviar:', error);
+});
+
+
+
+  /*
   if (confirm('Tem certeza que deseja excluir este formulário?')) {
     window.dataService.delete(window.dataService.DATA_TYPES.FORMS, parseInt(formId));
     alert('Formulário excluído com sucesso!');
     loadForms();
     hidePreview();
   }
+  */
 }

@@ -51,6 +51,14 @@ try {
         $tipo = trim($q['type']);
         $obrigatoria = $q['required'] ? 1 : 0;
 
+        $checkForm = $pdo->prepare("SELECT id FROM form WHERE id = :id");
+        $checkForm->execute([':id' => $id_formulario]);
+
+        if ($checkForm->rowCount() === 0) {
+            throw new Exception("Formulário com ID $id_formulario não existe.");
+}
+
+
         // Insere na tabela `question`
         $insertQuestion->execute([
             ':id_formulario' => $id_formulario,

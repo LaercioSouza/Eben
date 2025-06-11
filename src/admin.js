@@ -650,16 +650,17 @@ function saveEmployee(e) {
   .then(response => response.json())
   .then(data => {
    console.log('Resposta do servidor:', data);
+   alert(`Técnico ${employee.nome} cadastrado com sucesso!`);
   })
   .catch(error => {
    console.error('Erro ao enviar:', error);
   });
   
   // Save employee using data service
-  window.dataService.create(window.dataService.DATA_TYPES.EMPLOYEES, employee);
+  //window.dataService.create(window.dataService.DATA_TYPES.EMPLOYEES, employee);
   
   // Show success message
-  alert(`Técnico ${employeeName} cadastrado com sucesso!`);
+  //alert(`Técnico ${employeeName} cadastrado com sucesso!`);
   
   // Reset form
   document.getElementById('employeeForm').reset();
@@ -674,33 +675,69 @@ function saveEmployee(e) {
 
 // Add employee management functions
 function loadEmployeesTable() {
-  const employees = window.dataService.getAll(window.dataService.DATA_TYPES.EMPLOYEES);
-  const tbody = document.getElementById('employeesTableBody');
-  const noEmployeesMessage = document.getElementById('no-employees-message');
-  
-  if (employees.length === 0) {
-    tbody.innerHTML = '';
-    noEmployeesMessage.classList.remove('d-none');
-    return;
-  }
-  
-  noEmployeesMessage.classList.add('d-none');
-  
-  tbody.innerHTML = employees.map(employee => `
-    <tr>
-      <td>${employee.nome}</td>
-      <td>${employee.cargo}</td>
-      <td>${employee.telefone}</td>
-      <td>
-        <button class="btn btn-sm btn-danger" onclick="deleteEmployee(${employee.id})">
-          <i class="bi bi-trash"></i> Excluir
-        </button>
-      </td>
-    </tr>
-  `).join('');
+  fetch("https://localhost/EBEN/api/showtableemployes.php", {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+  })
+  .then(response => response.json())
+  .then(data => {
+    console.log('Resposta do servidor:', data);
+
+    const tbody = document.getElementById('employeesTableBody');
+    const noEmployeesMessage = document.getElementById('no-employees-message');
+
+    if (!data || data.length === 0) {
+      tbody.innerHTML = '';
+      noEmployeesMessage.classList.remove('d-none');
+      return;
+    }
+
+    noEmployeesMessage.classList.add('d-none');
+
+    tbody.innerHTML = data.map(employee => `
+      <tr>
+        <td>${employee.nome}</td>
+        <td>${employee.cargo}</td>
+        <td>${employee.telefone}</td>
+        <td>
+          <button class="btn btn-sm btn-danger" onclick="deleteEmployee('${employee.id}')">
+            <i class="bi bi-trash"></i> Excluir
+          </button>
+        </td>
+      </tr>
+    `).join('');
+  })
+  .catch(error => {
+    console.error('Erro ao enviar:', error);
+  });
 }
 
+
 function deleteEmployee(employeeId) {
+  const confirmDelete = confirm("Tem certeza que deseja deletar este formulário? Esta ação não pode ser desfeita.");
+  if (!confirmDelete) return; // Se o usuário cancelar, para aqui
+
+  const idSelect = { id: employeeId };
+  fetch("https://localhost/EBEN/api/delete_employee.php", {
+         method: 'POST',
+         headers: {
+        'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(idSelect)
+        })
+       .then(response => response.json())
+       .then(data => {
+        console.log('Resposta do servidor:', data);
+        loadEmployeesTable();
+        loadEmployees(); // Reload dropdown
+        })
+        .catch(error => {
+        console.error('Erro ao enviar:', error);
+});
+
+  /*
   if (confirm('Tem certeza que deseja excluir este técnico?')) {
     // Check if employee has tasks
     const tasks = window.dataService.getAll(window.dataService.DATA_TYPES.TASKS);
@@ -719,6 +756,7 @@ function deleteEmployee(employeeId) {
     loadEmployees(); // Reload dropdown
     alert('Técnico excluído com sucesso!');
   }
+  */
 }
 
 // Add event listeners for company and employee forms
