@@ -23,7 +23,7 @@ function loadTasks() {
   .then(response => response.json())
   .then(task_json => {
     // Aqui você pode trabalhar com os dados retornados
-    console.log(task_json);
+    //console.log(task_json);
     tasks = applyFilters(task_json);
     if (tasks.length === 0) {
     tasksTableBody.innerHTML = '';
@@ -34,8 +34,9 @@ function loadTasks() {
 
     task_json.forEach(task => {
     tasksTableBody.innerHTML = task_json.map(task => {
-    const taskDate = new Date(task.data_tarefa);
-    const formattedDate = taskDate.toLocaleDateString('pt-BR');
+    const [year, month, day] = task.data_tarefa.split('-');
+    const formattedDate = `${day}/${month}/${year}`;
+    
     const statusClass = getStatusClass(task.status);
     
     
@@ -101,21 +102,27 @@ function loadTasks() {
 
 // Apply filters to tasks
 function applyFilters(tasks) {
-  const dateFilter = document.getElementById('date-filter').value;
+  
+ const dateFilter = document.getElementById('date-filter').value;
   const statusFilter = document.getElementById('status-filter').value;
   
+
+
   let filteredTasks = tasks;
   
-  // Filter by date
+
+  // Filtrar por data da tarefa (campo data_tarefa)
   if (dateFilter) {
-    filteredTasks = filteredTasks.filter(task => task.data === dateFilter);
+    filteredTasks = filteredTasks.filter(task => task.data_tarefa === dateFilter);
+    
+    
   }
-  
-  // Filter by status
+
+  // Filtrar por status (campo status)
   if (statusFilter !== 'all') {
     filteredTasks = filteredTasks.filter(task => task.status === statusFilter);
   }
-  
+  //console.log(filteredTasks);
   return filteredTasks;
 }
 
@@ -222,7 +229,7 @@ function showTaskDetail(taskId) {
 })
        .then(response => response.json())
        .then(data => {
-        console.log('Resposta do servidor:', data);
+        
         
   const task = data;
   let timeComparison = '';
@@ -784,7 +791,32 @@ function exportToPDF() {
 
 // Delete task
 function deleteTask(taskId) {
-  if (confirm('Tem certeza que deseja excluir esta tarefa?')) {
+  
+  const confirmDelete = confirm("Tem certeza que deseja deletar esta tarefa? Esta ação não pode ser desfeita.");
+  if (!confirmDelete) return; // Se o usuário cancelar, para aqui
+
+  const idSelect = { id: taskId };
+  fetch("https://localhost/EBEN/api/delete_task.php", {
+         method: 'POST',
+         headers: {
+        'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(idSelect)
+        })
+       .then(response => response.json())
+       .then(data => {
+        console.log('Resposta do servidor:', data);
+        const modal = bootstrap.Modal.getInstance(document.getElementById('taskDetailModal'));
+        if (modal) modal.hide();
+    
+        // Reload tasks
+        loadTasks();
+        
+        })
+        .catch(error => {
+        console.error('Erro ao enviar:', error);})
+        
+  /*if (confirm('Tem certeza que deseja excluir esta tarefa?')) {
     window.dataService.delete(window.dataService.DATA_TYPES.TASKS, taskId);
     
     // Close modal
@@ -795,7 +827,9 @@ function deleteTask(taskId) {
     loadTasks();
     
     alert('Tarefa excluída com sucesso!');
+    
   }
+    */
 }
 
 // Add event listeners

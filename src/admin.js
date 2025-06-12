@@ -348,7 +348,7 @@ function loadForms() {
   fetch("https://localhost/EBEN/api/showallforms.php")
   .then(response => response.json())
   .then(data => {
-    console.log('Formulários carregados:', data);
+    
 
     const formularioSelect = document.getElementById('formulario');
     if (!formularioSelect) return;
@@ -601,26 +601,34 @@ function saveCompany(e) {
 function loadParentCompanies() {
   const parentCompanySelect = document.getElementById('parentCompany');
   if (!parentCompanySelect) return;
-  
-  // Clear current options
+
+  // Limpar opções atuais
   parentCompanySelect.innerHTML = '<option value="">Nenhuma (Empresa Principal)</option>';
+
+  fetch("https://localhost/EBEN/api/showparentcompanies.php")
+    .then(response => response.json())
+    .then(companies => {
+      
+      // Filtrar apenas empresas principais (sem parentId ou com parentId nulo/vazio)
+      companies
+        .filter(company => !company.parentId)
+        .forEach(company => {
+          const option = document.createElement('option');
+          option.value = company.id;
+
+          let displayText = company.nome;
+          if (company.cnpj) {
+            displayText += ` (CNPJ: ${company.cnpj})`;
+          }
+
+          option.textContent = displayText;
+          parentCompanySelect.appendChild(option);
+        });
+    })
+    .catch(error => {
+      console.error('Erro ao carregar empresas principais:', error);
+    });
   
-  // Get companies from data service
-  const companies = window.dataService.getAll(window.dataService.DATA_TYPES.COMPANIES);
-  
-  // Add only main companies with detailed information
-  companies.filter(company => !company.parentId).forEach(company => {
-    const option = document.createElement('option');
-    option.value = company.id;
-    
-    let displayText = company.nome;
-    if (company.cnpj) {
-      displayText += ` (CNPJ: ${company.cnpj})`;
-    }
-    
-    option.textContent = displayText;
-    parentCompanySelect.appendChild(option);
-  });
 }
 
 // Save employee using data service
