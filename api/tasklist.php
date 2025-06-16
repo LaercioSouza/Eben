@@ -17,21 +17,24 @@ $pass = '';
 $pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8", $user, $pass);
 
 $sql = "
-   SELECT 
-        e.nome AS empresa,
-        c.nome AS colaborador,
-        t.id,
-        t.data_tarefa,
-        t.hora_tarefa,
-        t.status
-    FROM 
-        task t
-    JOIN 
-        companies e ON t.empresa_id = e.id
-    JOIN 
-        employees c ON t.colaborador_id = c.id
-
-
+    SELECT 
+    e.nome AS empresa,
+    c.nome AS colaborador,
+    t.id,
+    t.responsavel,
+    t.tempo_sugerido,
+    t.data_tarefa,
+    t.hora_tarefa,
+    t.descricao,
+    t.coordenadas,
+    t.status,
+    t.criado_em
+FROM 
+    task t
+JOIN 
+    companies e ON t.empresa_id = e.id
+JOIN 
+    employees c ON t.colaborador_id = c.id
 ";
 
 // Prepara e executa
@@ -40,9 +43,24 @@ $stmt->execute();
 
 // Busca os dados
 $resultados = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$campos_esperados = [
+    'empresa', 'colaborador', 'id', 'responsavel', 'tempo_sugerido', 'data_tarefa',
+    'hora_tarefa', 'descricao', 'coordenadas', 'status', 'criado_em'
+];
+
+foreach ($resultados as &$registro) {
+    foreach ($campos_esperados as $campo) {
+        if (!array_key_exists($campo, $registro)) {
+            $registro[$campo] = null;
+        }
+    }
+}
+
+echo json_encode($resultados, JSON_UNESCAPED_UNICODE);
+
 
 // Retorna como JSON
-echo json_encode($resultados);
+
 
 /*
 // Buscar somente id e nome

@@ -1,4 +1,4 @@
-
+//user-form-HandPlatter.js
 // Form handling for user tasks
 function showTaskFormModal(taskId) {
   console.log('Opening form modal for task:', taskId);
@@ -15,7 +15,7 @@ function showTaskFormModal(taskId) {
     });
     return;
   }
-  
+
   const form = window.dataService.getById(window.dataService.DATA_TYPES.FORMS, task.formularioId);
   if (!form) {
     console.log('Form not found:', task.formularioId);
@@ -29,7 +29,7 @@ function showTaskFormModal(taskId) {
     });
     return;
   }
-  
+
   // Create modal HTML
   const modalHtml = `
     <div class="modal fade" id="taskFormModal" tabindex="-1" aria-hidden="true">
@@ -55,22 +55,22 @@ function showTaskFormModal(taskId) {
       </div>
     </div>
   `;
-  
+
   // Remove existing modal if any
   const existingModal = document.getElementById('taskFormModal');
   if (existingModal) {
     existingModal.remove();
   }
-  
+
   // Add modal to page
   document.body.insertAdjacentHTML('beforeend', modalHtml);
-  
+
   // Show modal
   const modal = new bootstrap.Modal(document.getElementById('taskFormModal'));
   modal.show();
-  
+
   // Handle form submission
-  document.getElementById('taskFormAnswers').addEventListener('submit', function(e) {
+  document.getElementById('taskFormAnswers').addEventListener('submit', function (e) {
     e.preventDefault();
     saveTaskFormAnswers(taskId, form, modal);
   });
@@ -80,12 +80,19 @@ function showTaskFormModal(taskId) {
 function completeTaskWithForm(taskId) {
   console.log('Starting task completion with form check for task:', taskId);
   const task = window.dataService.getById(window.dataService.DATA_TYPES.TASKS, taskId);
+
   if (!task) {
     console.log('Task not found:', taskId);
+    showToast('Tarefa não encontrada!', 'danger');
     return;
   }
-  
-  // Check if task has a form that needs to be filled
+
+  // Impede reabertura do formulário se já respondeu
+  if (task.status !== 'em_andamento') {
+    showToast('O formulário já foi respondido ou esta etapa já foi concluída.', 'warning');
+    return;
+  }
+
   if (task.formularioId) {
     const form = window.dataService.getById(window.dataService.DATA_TYPES.FORMS, task.formularioId);
     if (form) {
@@ -94,8 +101,8 @@ function completeTaskWithForm(taskId) {
       return;
     }
   }
-  
-  // If no form, show observations modal
+
+  // Fluxo para tarefas sem formulário
   console.log('No form found, showing observations modal');
   showObservationsModal((observations) => {
     if (observations !== null) {
@@ -106,10 +113,56 @@ function completeTaskWithForm(taskId) {
   });
 }
 
+function loadUserTasks() {
+  if (!currentUserId) return;
+
+  const allTasks = window.dataService.getAll(window.dataService.DATA_TYPES.TASKS);
+  const userTasks = allTasks.filter(task =>
+    task.colaboradorId === currentUserId &&
+    task.status !== 'concluida'
+  );
+
+  const taskList = document.getElementById('task-list');
+  taskList.innerHTML = '';
+
+  if (userTasks.length === 0) {
+    taskList.innerHTML = `
+      <div class="text-center py-4 text-muted">
+        <p>Nenhuma tarefa ativa no momento</p>
+      </div>
+    `;
+    return;
+  }
+
+  // Código de renderização das tarefas...
+  userTasks.forEach(task => {
+    const taskElement = document.createElement('div');
+    taskElement.className = 'list-group-item task-item';
+    taskElement.innerHTML = `
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h6 class="mb-1">${task.empresaNome}</h6>
+          <small class="text-muted">${task.data} às ${task.hora}</small>
+        </div>
+        <span class="badge ${getStatusBadgeClass(task.status)}">${getStatusText(task.status)}</span>
+      </div>
+    `;
+    taskList.appendChild(taskElement);
+  });
+
+  // Atualizar marcadores do mapa
+  updateMapMarkers();
+}
+
 function completeTaskDirectly(taskId, coordinates, observations = 'Tarefa finalizada sem observações adicionais') {
   console.log('Completing task directly:', taskId, 'with observations:', observations);
   // Complete the task without form
-  const updatedTask = window.dataService.completeTask(taskId, coordinates, observations);
+  const updatedTask = window.dataService.updateTaskStatus(
+    taskId,
+    'aguardando_retorno',
+    coordinates,
+    observations
+  );
   if (updatedTask) {
     showToast('Tarefa finalizada com sucesso!', 'success');
     loadUserTasks();
@@ -120,11 +173,11 @@ function completeTaskDirectly(taskId, coordinates, observations = 'Tarefa finali
 function getCurrentLocation(callback) {
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(
-      function(position) {
+      function (position) {
         const coords = `${position.coords.longitude},${position.coords.latitude}`;
         callback(coords);
       },
-      function(error) {
+      function (error) {
         console.error('Error getting location:', error);
         // Use default coordinates (Parnaíba, PI)
         callback('-41.7734,-2.9055');
@@ -160,29 +213,29 @@ function showObservationsModal(callback, title = 'Observações Finais', placeho
       </div>
     </div>
   `;
-  
+
   // Remove existing modal if any
   const existingModal = document.getElementById('observationsModal');
   if (existingModal) {
     existingModal.remove();
   }
-  
+
   // Add modal to page
   document.body.insertAdjacentHTML('beforeend', modalHtml);
-  
+
   // Show modal
   const modal = new bootstrap.Modal(document.getElementById('observationsModal'));
   modal.show();
-  
+
   // Handle save button
-  document.getElementById('saveObservations').addEventListener('click', function() {
+  document.getElementById('saveObservations').addEventListener('click', function () {
     const observations = document.getElementById('observations').value;
     modal.hide();
     callback(observations);
   });
-  
+
   // Handle modal close
-  document.getElementById('observationsModal').addEventListener('hidden.bs.modal', function() {
+  document.getElementById('observationsModal').addEventListener('hidden.bs.modal', function () {
     callback(null);
   });
 }
@@ -195,9 +248,9 @@ function generateFormQuestions(questions, taskId) {
   return questions.map(question => {
     let html = `<div class="mb-3">`;
     html += `<label class="form-label">${question.text} ${question.required ? '<span class="text-danger">*</span>' : ''}</label>`;
-    
+
     const fieldName = `question_${question.id}`;
-    
+
     switch (question.type) {
       case 'text':
         html += `<input type="text" class="form-control" name="${fieldName}" ${question.required ? 'required' : ''}>`;
@@ -226,7 +279,7 @@ function generateFormQuestions(questions, taskId) {
         });
         break;
     }
-    
+
     html += `</div>`;
     return html;
   }).join('');
@@ -236,11 +289,12 @@ function saveTaskFormAnswers(taskId, form, modal) {
   console.log('Saving task form answers for task:', taskId);
   const formData = new FormData(document.getElementById('taskFormAnswers'));
   const answers = [];
-  
+  let validationError = false;
+
   form.questions.forEach(question => {
     const fieldName = `question_${question.id}`;
     let answer = null;
-    
+
     switch (question.type) {
       case 'text':
       case 'textarea':
@@ -252,13 +306,16 @@ function saveTaskFormAnswers(taskId, form, modal) {
         answer = checkboxValues.length > 0 ? checkboxValues : null;
         break;
     }
-    
-    // Validate required fields
-    if (question.required && (!answer || (Array.isArray(answer) && answer.length === 0))) {
-      alert(`Por favor, responda a pergunta obrigatória: ${question.text}`);
-      return false;
+
+    // Validação de campos obrigatórios
+    if (question.required) {
+      if (!answer || (Array.isArray(answer) && answer.length === 0)) {
+        alert(`Por favor, responda a pergunta obrigatória: ${question.text}`);
+        validationError = true;
+        return;
+      }
     }
-    
+
     answers.push({
       questionId: question.id,
       questionText: question.text,
@@ -266,38 +323,42 @@ function saveTaskFormAnswers(taskId, form, modal) {
       answer: answer
     });
   });
-  
-  // Save answers to task
+
+  if (validationError) return;
+
+  // Atualizar a tarefa com as respostas e mudar status
   const task = window.dataService.getById(window.dataService.DATA_TYPES.TASKS, taskId);
   if (task) {
     const updates = {
+      status: 'aguardando_retorno', // Alterado de 'concluida'
       formularioResposta: {
         formId: form.id,
         formName: form.name,
         answers: answers,
         completedAt: new Date().toISOString()
-      }
+      },
+      coordinates: task.coordinates
     };
-    
+
     window.dataService.update(window.dataService.DATA_TYPES.TASKS, taskId, updates);
-    
-    // Close modal
+
+    // Fechar e remover modal completamente
     modal.hide();
-    
-    showToast('Formulário respondido com sucesso!', 'success');
-    
-    // Now complete the task
-    getCurrentLocation((coords) => {
-      const updatedTask = window.dataService.completeTask(taskId, coords, 'Tarefa finalizada com formulário respondido');
-      if (updatedTask) {
-        showToast('Tarefa finalizada com sucesso!', 'success');
-        loadUserTasks();
-        updateMapMarkers();
-      }
-    });
+    document.getElementById('taskFormModal').remove();
+
+    // Fechar modal de detalhes da tarefa e atualizar interface
+    const taskDetailModal = bootstrap.Modal.getInstance(document.getElementById('taskDetailModal'));
+    if (taskDetailModal) taskDetailModal.hide();
+
+    // Atualizar interface
+    showToast('Tarefa concluída com sucesso!', 'success');
+    if (typeof loadTaskList === 'function') {
+      loadTaskList();
+    } else if (typeof loadUserTasks === 'function') {
+      loadUserTasks();
+    }
+    if (typeof updateMapMarkers === 'function') updateMapMarkers();
   }
-  
-  return true;
 }
 
 function showToast(message, type) {
@@ -309,7 +370,7 @@ function showToast(message, type) {
   toast.style.zIndex = '9999';
   toast.textContent = message;
   document.body.appendChild(toast);
-  
+
   setTimeout(() => {
     toast.remove();
   }, 3000);
@@ -321,3 +382,24 @@ window.taskFormHandler = {
   completeTaskWithForm,
   showPauseReasonModal
 };
+
+function cleanupAfterSubmission() {
+  // Remover modais residuais
+  const modals = ['taskFormModal', 'observationsModal'];
+  modals.forEach(modalId => {
+    const modalElement = document.getElementById(modalId);
+    if (modalElement) {
+      const modalInstance = bootstrap.Modal.getInstance(modalElement);
+      if (modalInstance) {
+        modalInstance.hide();
+        modalInstance.dispose();
+      }
+      modalElement.remove();
+    }
+  });
+
+  // Forçar atualização da interface
+  loadUserTasks();
+  const taskDetailModal = bootstrap.Modal.getInstance(document.getElementById('taskDetailModal'));
+  if (taskDetailModal) taskDetailModal.hide();
+}

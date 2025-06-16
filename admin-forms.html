@@ -1,174 +1,175 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Gerenciar Formulários - Painel de Administrador</title>
-    <meta name="description" content="Gerenciamento de formulários do sistema" />
-    <meta name="author" content="Task Generator" />
-    
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    
-    <!-- Bootstrap Icons -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="/src/styles.css">
-  </head>
 
-  <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-success">
-      <div class="container-fluid">
-        <a class="navbar-brand" href="#">Sistema de Tarefas</a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-          <span class="navbar-toggler-icon"></span>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gerenciar Formulários - Painel de Administrador</title>
+  <meta name="description" content="Gerenciamento de formulários do sistema" />
+  <meta name="author" content="Task Generator" />
+
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="/src/styles.css">
+</head>
+
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-success">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="#">Sistema de Tarefas</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav me-auto">
+          <li class="nav-item">
+            <a class="nav-link" href="admin.html">Criar Tarefas</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="admin-list.html">Listar Tarefas</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link active" href="admin-forms.html">Gerenciar Formulários</a>
+          </li>
+        </ul>
+        <ul class="navbar-nav">
+          <li class="nav-item">
+            <a class="nav-link" href="index.html">Sair</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container-fluid py-3">
+    <div class="task-card">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">GERENCIAR FORMULÁRIOS</h2>
+        <button id="btn-new-form" class="btn btn-success">
+          <i class="bi bi-plus-lg"></i> Novo Formulário
         </button>
-        <div class="collapse navbar-collapse" id="navbarNav">
-          <ul class="navbar-nav me-auto">
-            <li class="nav-item">
-              <a class="nav-link" href="admin.html">Criar Tarefas</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="admin-list.html">Listar Tarefas</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link active" href="admin-forms.html">Gerenciar Formulários</a>
-            </li>
-          </ul>
-          <ul class="navbar-nav">
-            <li class="nav-item">
-              <a class="nav-link" href="index.html">Sair</a>
-            </li>
-          </ul>
-        </div>
       </div>
-    </nav>
 
-    <div class="container-fluid py-3">
-      <div class="task-card">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-          <h2 class="mb-0">GERENCIAR FORMULÁRIOS</h2>
-          <button id="btn-new-form" class="btn btn-success">
-            <i class="bi bi-plus-lg"></i> Novo Formulário
-          </button>
-        </div>
-        
-        <div class="row">
-          <div class="col-md-6">
-            <h4>Formulários Criados</h4>
-            <div id="forms-list" class="list-group">
-              <div class="text-center py-4 text-muted">
-                <p>Nenhum formulário criado</p>
-              </div>
+      <div class="row">
+        <div class="col-md-6">
+          <h4>Formulários Criados</h4>
+          <div id="forms-list" class="list-group">
+            <div class="text-center py-4 text-muted">
+              <p>Nenhum formulário criado</p>
             </div>
           </div>
-          
-          <div class="col-md-6">
-            <div id="form-preview" class="d-none">
-              <h4>Pré-visualização</h4>
-              <div class="border p-3 bg-light rounded">
-                <div id="preview-content"></div>
-              </div>
+        </div>
+
+        <div class="col-md-6">
+          <div id="form-preview" class="d-none">
+            <h4>Pré-visualização</h4>
+            <div class="border p-3 bg-light rounded">
+              <div id="preview-content"></div>
             </div>
           </div>
         </div>
       </div>
     </div>
+  </div>
 
-    <!-- Modal para criar/editar formulário -->
-    <div class="modal fade" id="formModal" tabindex="-1" aria-hidden="true">
-      <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-          <div class="modal-header bg-success text-white">
-            <h5 class="modal-title" id="formModalTitle">Criar Novo Formulário</h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body">
-            <form id="createFormForm">
-              <div class="mb-3">
-                <label for="formName" class="form-label">Nome do Formulário:</label>
-                <input type="text" class="form-control" id="formName" required>
-              </div>
-              
-              <div class="mb-3">
-                <label for="formDescription" class="form-label">Descrição (opcional):</label>
-                <textarea class="form-control" id="formDescription" rows="2"></textarea>
-              </div>
-              
-              <hr>
-              
-              <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5>Perguntas do Formulário</h5>
-                <button type="button" id="btn-add-question" class="btn btn-outline-success btn-sm">
-                  <i class="bi bi-plus"></i> Adicionar Pergunta
-                </button>
-              </div>
-              
-              <div id="questions-container">
-                <!-- Perguntas serão adicionadas aqui dinamicamente -->
-              </div>
-              
-              <div class="d-grid mt-4">
-                <button type="submit" class="btn btn-success">Salvar Formulário</button>
-              </div>
-            </form>
-          </div>
+  <!-- Modal para criar/editar formulário -->
+  <div class="modal fade" id="formModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header bg-success text-white">
+          <h5 class="modal-title" id="formModalTitle">Criar Novo Formulário</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="createFormForm">
+            <div class="mb-3">
+              <label for="formName" class="form-label">Nome do Formulário:</label>
+              <input type="text" class="form-control" id="formName" required>
+            </div>
+
+            <div class="mb-3">
+              <label for="formDescription" class="form-label">Descrição (opcional):</label>
+              <textarea class="form-control" id="formDescription" rows="2"></textarea>
+            </div>
+
+            <hr>
+
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h5>Perguntas do Formulário</h5>
+              <button type="button" id="btn-add-question" class="btn btn-outline-success btn-sm">
+                <i class="bi bi-plus"></i> Adicionar Pergunta
+              </button>
+            </div>
+
+            <div id="questions-container">
+              <!-- Perguntas serão adicionadas aqui dinamicamente -->
+            </div>
+
+            <div class="d-grid mt-4">
+              <button type="submit" class="btn btn-success">Salvar Formulário</button>
+            </div>
+          </form>
         </div>
       </div>
     </div>
+  </div>
 
-    <!-- Template para pergunta -->
-    <div id="question-template" class="d-none">
-      <div class="question-item border p-3 mb-3 rounded">
-        <div class="d-flex justify-content-between align-items-start mb-2">
-          <span class="badge bg-secondary question-number">Pergunta 1</span>
-          <button type="button" class="btn btn-outline-danger btn-sm remove-question">
-            <i class="bi bi-trash"></i>
-          </button>
+  <!-- Template para pergunta -->
+  <div id="question-template" class="d-none">
+    <div class="question-item border p-3 mb-3 rounded">
+      <div class="d-flex justify-content-between align-items-start mb-2">
+        <span class="badge bg-secondary question-number">Pergunta 1</span>
+        <button type="button" class="btn btn-outline-danger btn-sm remove-question">
+          <i class="bi bi-trash"></i>
+        </button>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Texto da Pergunta:</label>
+        <input type="text" class="form-control question-text" required>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Tipo de Resposta:</label>
+        <select class="form-select question-type">
+          <option value="text">Campo de Texto</option>
+          <option value="textarea">Área de Texto</option>
+          <option value="checkbox">Múltipla Escolha (Checkbox)</option>
+          <option value="radio">Escolha Única (Radio)</option>
+        </select>
+      </div>
+
+      <div class="options-container d-none">
+        <label class="form-label">Opções:</label>
+        <div class="options-list">
+          <!-- Opções serão adicionadas aqui -->
         </div>
-        
-        <div class="mb-3">
-          <label class="form-label">Texto da Pergunta:</label>
-          <input type="text" class="form-control question-text" required>
-        </div>
-        
-        <div class="mb-3">
-          <label class="form-label">Tipo de Resposta:</label>
-          <select class="form-select question-type">
-            <option value="text">Campo de Texto</option>
-            <option value="textarea">Área de Texto</option>
-            <option value="checkbox">Múltipla Escolha (Checkbox)</option>
-            <option value="radio">Escolha Única (Radio)</option>
-          </select>
-        </div>
-        
-        <div class="options-container d-none">
-          <label class="form-label">Opções:</label>
-          <div class="options-list">
-            <!-- Opções serão adicionadas aqui -->
-          </div>
-          <button type="button" class="btn btn-outline-secondary btn-sm add-option">
-            <i class="bi bi-plus"></i> Adicionar Opção
-          </button>
-        </div>
-        
-        <div class="form-check">
-          <input class="form-check-input question-required" type="checkbox">
-          <label class="form-check-label">Pergunta obrigatória</label>
-        </div>
+        <button type="button" class="btn btn-outline-secondary btn-sm add-option">
+          <i class="bi bi-plus"></i> Adicionar Opção
+        </button>
+      </div>
+
+      <div class="form-check">
+        <input class="form-check-input question-required" type="checkbox">
+        <label class="form-check-label">Pergunta obrigatória</label>
       </div>
     </div>
+  </div>
 
-    <!-- Bootstrap Bundle with Popper -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- Data Service -->
-    <script src="/src/data-service.js"></script>
-    <!-- Custom JS -->
-    <script src="/src/admin-forms.js"></script>
-    
-    <!-- IMPORTANT: DO NOT REMOVE THIS SCRIPT TAG OR THIS VERY COMMENT! -->
-    <script src="https://cdn.gpteng.co/gptengineer.js" type="module"></script>
-  </body>
+  <!-- Bootstrap Bundle with Popper -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Data Service -->
+  <script src="/src/data-service.js"></script>
+  <!-- Custom JS -->
+  <script src="/src/admin-forms.js"></script>
+
+  <!-- IMPORTANT: DO NOT REMOVE THIS SCRIPT TAG OR THIS VERY COMMENT! -->
+  <script src="https://cdn.gpteng.co/gptengineer.js" type="module"></script>
+</body>
+
 </html>

@@ -1,5 +1,6 @@
+//admin.js
 // Integrate with data service
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
   // Initialize data from the data service
   initApp();
 });
@@ -12,15 +13,15 @@ function initApp() {
   // Initialize map
   initMap();
   setTodayAsDefault();
-  
+
   // Add event listeners
   document.getElementById('taskForm').addEventListener('submit', saveTask);
-  
+
   // Load companies, employees, and forms
   loadCompanies();
   loadEmployees();
   loadForms();
-  
+
   // Company change event
   document.getElementById('empresa').addEventListener('change', loadSubsidiaries);
 }
@@ -30,15 +31,15 @@ function initMap() {
   // Coordenadas de Parnaíba, PI
   const initialLat = -2.9055;
   const initialLng = -41.7734;
-  
+
   // Criar o mapa
   map = L.map('map').setView([initialLat, initialLng], 13);
-  
+
   // Adicionar camada de mapa do OpenStreetMap
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
   }).addTo(map);
-  
+
   // Adicionar marcador arrastável com ícone maior
   const largeIcon = L.icon({
     iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
@@ -48,21 +49,21 @@ function initMap() {
     popupAnchor: [1, -34],
     shadowSize: [41, 41]
   });
-  
+
   marker = L.marker([initialLat, initialLng], {
     draggable: true,
     icon: largeIcon
   }).addTo(map);
-  
+
   // Atualizar coordenadas quando marcador for movido
   marker.on('dragend', updateCoordinates);
-  
+
   // Permitir clique no mapa para mover o marcador
-  map.on('click', function(e) {
+  map.on('click', function (e) {
     marker.setLatLng(e.latlng);
     updateCoordinates();
   });
-  
+
   // Definir coordenadas iniciais
   updateCoordinates();
 }
@@ -72,20 +73,20 @@ function initCompanyMap() {
   // Coordenadas de Parnaíba, PI
   const initialLat = -2.9055;
   const initialLng = -41.7734;
-  
+
   // Clear existing map if any
   if (companyMap) {
     companyMap.remove();
   }
-  
+
   // Criar o mapa
   companyMap = L.map('company-map').setView([initialLat, initialLng], 13);
-  
+
   // Adicionar camada de mapa do OpenStreetMap
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
   }).addTo(companyMap);
-  
+
   // Adicionar marcador arrastável com ícone maior
   const largeIcon = L.icon({
     iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
@@ -95,24 +96,24 @@ function initCompanyMap() {
     popupAnchor: [1, -34],
     shadowSize: [41, 41]
   });
-  
+
   companyMarker = L.marker([initialLat, initialLng], {
     draggable: true,
     icon: largeIcon
   }).addTo(companyMap);
-  
+
   // Atualizar coordenadas quando marcador for movido
   companyMarker.on('dragend', updateCompanyCoordinates);
-  
+
   // Permitir clique no mapa para mover o marcador
-  companyMap.on('click', function(e) {
+  companyMap.on('click', function (e) {
     companyMarker.setLatLng(e.latlng);
     updateCompanyCoordinates();
   });
-  
+
   // Definir coordenadas iniciais
   updateCompanyCoordinates();
-  
+
   // Force map resize after modal is shown
   setTimeout(() => {
     companyMap.invalidateSize();
@@ -143,7 +144,8 @@ function setTodayAsDefault() {
 
 // Load companies from data service
 function loadCompanies() {
-  //const empresaSelect = document.getElementById('empresa');
+
+   //const empresaSelect = document.getElementById('empresa');
   const empresaSelect = document.getElementById('empresa');
 
  
@@ -188,79 +190,42 @@ function loadCompanies() {
     });
 
     toggleSubsidiaryField(false);
+  
 }
-  
- 
-
-  /*
-  
-  // Clear current options
-  empresaSelect.innerHTML = '<option value="">Selecione uma empresa</option>';
-  
-  // Get companies from data service
-  const companies = window.dataService.getAll(window.dataService.DATA_TYPES.COMPANIES);
-  
-
-  console.log('Companies loaded:', companies);
-
-  
-  
-  // Add only main companies (not subsidiaries)
-  companies.filter(company => !company.parentId).forEach(company => {
-    const option = document.createElement('option');
-    option.value = company.id;
-    
-    // Create detailed display text
-    let displayText = company.nome;
-    if (company.cnpj) {
-      displayText += ` (CNPJ: ${company.cnpj})`;
-    }
-    if (company.endereco) {
-      displayText += ` - ${company.endereco}`;
-    }
-    
-    option.textContent = displayText;
-    option.title = `${company.nome}\nCNPJ: ${company.cnpj || 'Não informado'}\nEndereço: ${company.endereco || 'Não informado'}\nTelefone: ${company.telefone || 'Não informado'}`;
-    empresaSelect.appendChild(option);
-  });
-
-  */
-  
-
 
 // Load subsidiaries
 function loadSubsidiaries() {
   const empresaId = document.getElementById('empresa').value;
-  
+
   if (!empresaId) {
     toggleSubsidiaryField(false);
     return;
   }
-  
+
   // Get companies from data service
   const companies = window.dataService.getAll(window.dataService.DATA_TYPES.COMPANIES);
-  
+
   // Find subsidiaries of selected company
   const subsidiaries = companies.filter(company => company.parentId === parseInt(empresaId));
-  
+
   if (subsidiaries.length === 0) {
     toggleSubsidiaryField(false);
     return;
   }
-  
+
   // Show the field and populate with subsidiaries
   toggleSubsidiaryField(true);
-  
+
   const subsidiarySelect = document.getElementById('subsidiary');
-  
+
   // Clear current options
   subsidiarySelect.innerHTML = '<option value="">Selecione uma filial (opcional)</option>';
-  
+
   // Add subsidiaries with detailed information
   subsidiaries.forEach(subsidiary => {
     const option = document.createElement('option');
     option.value = subsidiary.id;
-    
+
     let displayText = subsidiary.nome;
     if (subsidiary.cnpj) {
       displayText += ` (CNPJ: ${subsidiary.cnpj})`;
@@ -268,7 +233,7 @@ function loadSubsidiaries() {
     if (subsidiary.endereco) {
       displayText += ` - ${subsidiary.endereco}`;
     }
-    
+
     option.textContent = displayText;
     option.title = `${subsidiary.nome}\nCNPJ: ${subsidiary.cnpj || 'Não informado'}\nEndereço: ${subsidiary.endereco || 'Não informado'}\nTelefone: ${subsidiary.telefone || 'Não informado'}`;
     subsidiarySelect.appendChild(option);
@@ -290,13 +255,11 @@ function toggleSubsidiaryField(show) {
 
 // Load employees from data service
 function loadEmployees() {
-
-  fetch("https://localhost/EBEN/api/listemploye.php")
-     .then(response => response.json())
-     .then(funcionarios => {
-      const select = document.getElementById('colaborador');
-
-      funcionarios.forEach(func => {
+    fetch("https://localhost/EBEN/api/listemploye.php")
+    .then(response => response.json())
+    .then(funcionarios => {
+    const select = document.getElementById('colaborador');
+     funcionarios.forEach(func => {
         const option = document.createElement('option');
         option.value = func.id;
         option.textContent = `${func.nome}`;
@@ -316,40 +279,11 @@ function loadEmployees() {
     });
 }
 
-
-  /*
-  const colaboradorSelect = document.getElementById('colaborador');
-  if (!colaboradorSelect) return;
-  
-  console.log('Loading employees...');
-  
-  // Clear current options
-  colaboradorSelect.innerHTML = '<option value="">Selecione um técnico</option>';
-  
-  // Get employees from data service
-  const employees = window.dataService.getAll(window.dataService.DATA_TYPES.EMPLOYEES);
-  console.log('Employees loaded:', employees);
-  
-  // Add employees
-  employees.forEach(employee => {
-    const option = document.createElement('option');
-    option.value = employee.id;
-    option.textContent = employee.nome;
-    colaboradorSelect.appendChild(option);
-  });
-
-  */
-
-
 // Load forms from data service
 function loadForms() {
-
-
   fetch("https://localhost/EBEN/api/showallforms.php")
   .then(response => response.json())
   .then(data => {
-    
-
     const formularioSelect = document.getElementById('formulario');
     if (!formularioSelect) return;
 
@@ -368,58 +302,13 @@ function loadForms() {
     console.error('Erro ao carregar formulários:', error);
   });
 
-
-  /*
-  fetch("https://localhost/EBEN/api/showallforms.php")
-     .then(response => response.json())
-     .then(forms => {
-      console.log(forms)
-      
-      })
-  .catch(error => {
-    console.error('Erro ao carregar formularios:', error);
-  });
-
-  const formularioSelect = document.getElementById('formulario');
-  if (!formularioSelect) return;
-  
-  console.log('Loading forms...');
-  
-  // Clear current options
-  formularioSelect.innerHTML = '<option value="">Nenhum formulário</option>';
-  
-  // Get forms from data service
-  const forms = window.dataService.getAll(window.dataService.DATA_TYPES.FORMS);
-  //console.log('Forms loaded:', forms);
-  
-  // Add forms
-  forms.forEach(form => {
-    const option = document.createElement('option');
-    option.value = form.id;
-    option.textContent = form.name;
-    formularioSelect.appendChild(option);
-  });
-*/
-  
 }
 
 // Save task using data service
 function saveTask(e) {
   e.preventDefault();
-  /*
-  // Get form values
-  const empresaId = document.getElementById('empresa').value;
-  const subsidiaryId = document.getElementById('subsidiary')?.value || null;
-  const colaboradorId = document.getElementById('colaborador').value;
-  const responsavel = document.getElementById('responsavel').value || '';
-  const data = document.getElementById('data').value;
-  const hora = document.getElementById('hora').value;
-  const tempoSugerido = document.getElementById('tempoSugerido').value || null;
-  const descricao = document.getElementById('descricao').value;
-  const coordinates = document.getElementById('coordinates').value;
-  const formularioId = document.getElementById('formulario').value || null;
-  */
 
+  // Get form values
   const empresa = document.getElementById('empresa').value;
   const subsidiary = document.getElementById('subsidiary')?.value || null;
   const colaborador = document.getElementById('colaborador').value;
@@ -430,38 +319,11 @@ function saveTask(e) {
   const descricao = document.getElementById('descricao').value;
   const coordinates = document.getElementById('coordinates').value;
   const formulario = document.getElementById('formulario').value || null;
-
-
-  /*
-
-  // Get companies, employees, and forms from data service
-  const companies = window.dataService.getAll(window.dataService.DATA_TYPES.COMPANIES);
-  const employees = window.dataService.getAll(window.dataService.DATA_TYPES.EMPLOYEES);
-  const forms = window.dataService.getAll(window.dataService.DATA_TYPES.FORMS);
-  
-  
-  // Find company, employee, and form objects
-  const empresa = companies.find(company => company.id === parseInt(empresaId));
-  const subsidiary = subsidiaryId ? companies.find(company => company.id === parseInt(subsidiaryId)) : null;
-  const colaborador = employees.find(employee => employee.id === parseInt(colaboradorId));
-  const formulario = formularioId ? forms.find(form => form.id === parseInt(formularioId)) : null;
-  
-  */
-
   if (!empresa || !colaborador) {
     alert('Por favor, selecione uma empresa e um técnico válidos');
     return;
   }
-  
-  // Display name (including subsidiary if selected)
-  /*
-
-  const empresaNome = subsidiary 
-    ? `${empresa.nome} - ${subsidiary.nome}` 
-    : empresa.nome;
-  */
-  // Create task object
-  const task = {
+   const task = {
     id: Date.now(),
     empresaid: empresa,
     subsidiaria: subsidiary,
@@ -503,21 +365,7 @@ function saveTask(e) {
 .catch(error => {
   console.error('Erro:', error);
 });
-  
-  // Save task using data service
-  window.dataService.create(window.dataService.DATA_TYPES.TASKS, task);
-
-  /*
-  
-  // Show success message
-  const formMessage = formulario ? ` com formulário "${formulario.name}"` : '';
-  const responsavelMessage = responsavel ? ` (Responsável: ${responsavel})` : '';
-  const tempoMessage = tempoSugerido ? ` (Tempo sugerido: ${tempoSugerido}h)` : '';
-  alert(`Tarefa para ${empresaNome} criada com sucesso${formMessage}${responsavelMessage}${tempoMessage}!`);
-  
-  */
-
-  // Reset form
+ 
   this.reset();
   setTodayAsDefault();
   
@@ -538,14 +386,12 @@ function saveTask(e) {
 // Save company using data service
 function saveCompany(e) {
   e.preventDefault();
-  
   const companyName = document.getElementById('companyName').value;
   const companyCnpj = document.getElementById('companyCnpj').value;
   const companyAddress = document.getElementById('companyAddress').value;
   const companyPhone = document.getElementById('companyPhone').value;
   const parentCompanyId = document.getElementById('parentCompany').value || null;
   const companyCoordinates = document.getElementById('companyCoordinates')?.value || null;
-  
   // Create company object
   const company = {
     id: Date.now(),
@@ -573,9 +419,6 @@ function saveCompany(e) {
   console.error('Erro ao enviar:', error);
 });
 
-  // Save company using data service
-  window.dataService.create(window.dataService.DATA_TYPES.COMPANIES, company);
-  
   // Show success message
   if (parentCompanyId) {
     const companies = window.dataService.getAll(window.dataService.DATA_TYPES.COMPANIES);
@@ -601,26 +444,21 @@ function saveCompany(e) {
 function loadParentCompanies() {
   const parentCompanySelect = document.getElementById('parentCompany');
   if (!parentCompanySelect) return;
-
   // Limpar opções atuais
   parentCompanySelect.innerHTML = '<option value="">Nenhuma (Empresa Principal)</option>';
-
-  fetch("https://localhost/EBEN/api/showparentcompanies.php")
+     fetch("https://localhost/EBEN/api/showparentcompanies.php")
     .then(response => response.json())
     .then(companies => {
-      
       // Filtrar apenas empresas principais (sem parentId ou com parentId nulo/vazio)
       companies
         .filter(company => !company.parentId)
         .forEach(company => {
           const option = document.createElement('option');
           option.value = company.id;
-
           let displayText = company.nome;
           if (company.cnpj) {
             displayText += ` (CNPJ: ${company.cnpj})`;
           }
-
           option.textContent = displayText;
           parentCompanySelect.appendChild(option);
         });
@@ -628,13 +466,12 @@ function loadParentCompanies() {
     .catch(error => {
       console.error('Erro ao carregar empresas principais:', error);
     });
-  
 }
 
 // Save employee using data service
 function saveEmployee(e) {
   e.preventDefault();
-  
+
   const employeeName = document.getElementById('employeeName').value;
   const employeePosition = document.getElementById('employeePosition').value;
   const employeePhone = document.getElementById('employeePhone').value;
@@ -659,6 +496,7 @@ function saveEmployee(e) {
   .then(data => {
    console.log('Resposta do servidor:', data);
    alert(`Técnico ${employee.nome} cadastrado com sucesso!`);
+   loadEmployees();
   })
   .catch(error => {
    console.error('Erro ao enviar:', error);
@@ -678,7 +516,7 @@ function saveEmployee(e) {
   if (modal) modal.hide();
   
   // Reload employees
-  loadEmployees();
+  
 }
 
 // Add employee management functions
@@ -722,9 +560,8 @@ function loadEmployeesTable() {
   });
 }
 
-
 function deleteEmployee(employeeId) {
-  const confirmDelete = confirm("Tem certeza que deseja deletar este formulário? Esta ação não pode ser desfeita.");
+  const confirmDelete = confirm("Tem certeza que deseja deletar este usuário? Esta ação não pode ser desfeita.");
   if (!confirmDelete) return; // Se o usuário cancelar, para aqui
 
   const idSelect = { id: employeeId };
@@ -744,81 +581,141 @@ function deleteEmployee(employeeId) {
         .catch(error => {
         console.error('Erro ao enviar:', error);
 });
+}
 
-  /*
-  if (confirm('Tem certeza que deseja excluir este técnico?')) {
-    // Check if employee has tasks
-    const tasks = window.dataService.getAll(window.dataService.DATA_TYPES.TASKS);
-    const hasActiveTasks = tasks.some(task => 
-      task.colaboradorId === employeeId && 
-      !['concluida', 'finalizado'].includes(task.status)
-    );
-    
-    if (hasActiveTasks) {
-      alert('Não é possível excluir este técnico pois ele possui tarefas ativas.');
-      return;
-    }
-    
-    window.dataService.delete(window.dataService.DATA_TYPES.EMPLOYEES, employeeId);
-    loadEmployeesTable();
-    loadEmployees(); // Reload dropdown
-    alert('Técnico excluído com sucesso!');
+// Show task history in a modal
+function showTaskHistory(taskId) {
+  const task = window.dataService.getById(window.dataService.DATA_TYPES.TASKS, taskId);
+  if (!task || !task.history) {
+    alert('Histórico não encontrado para esta tarefa.');
+    return;
   }
-  */
+
+  const modalContent = document.getElementById('taskHistoryContent');
+  modalContent.innerHTML = task.history
+    .map(entry => `
+      <div class="border-bottom py-2">
+        <p><strong>Ação:</strong> ${entry.action}</p>
+        <p><strong>Data:</strong> ${new Date(entry.timestamp).toLocaleString()}</p>
+        <p><strong>Localização:</strong> ${entry.coordinates || 'N/A'}</p>
+        <p><strong>Observações:</strong> ${entry.observations || 'Nenhuma'}</p>
+      </div>
+    `)
+    .join('');
+
+  const modal = new bootstrap.Modal(document.getElementById('taskHistoryModal'));
+  modal.show();
+}
+
+// Analyze performance and render charts
+function analyzePerformance() {
+  const tasks = window.dataService.getAll(window.dataService.DATA_TYPES.TASKS);
+
+  if (!tasks || tasks.length === 0) {
+    alert('Nenhuma tarefa encontrada para análise.');
+    return;
+  }
+
+  // Aggregate data for analysis
+  const completedTasks = tasks.filter(task => task.status === 'concluida');
+  const totalTasks = tasks.length;
+  const avgWorkTime = calculateAverageTime(completedTasks, 'workTime');
+  const avgTransitTime = calculateAverageTime(completedTasks, 'transitTime');
+
+  // Render charts
+  renderChart('taskCompletionChart', 'Tarefas Concluídas', ['Concluídas', 'Pendentes'], [completedTasks.length, totalTasks - completedTasks.length]);
+  renderChart('timeAnalysisChart', 'Tempo Médio (Horas)', ['Trabalho', 'Translado'], [avgWorkTime, avgTransitTime]);
+}
+
+// Calculate average time in hours
+function calculateAverageTime(tasks, timeField) {
+  const totalMs = tasks.reduce((sum, task) => {
+    const time = task.report?.[timeField];
+    if (time) {
+      const [hours, minutes, seconds] = time.split(':').map(Number);
+      return sum + (hours * 3600 + minutes * 60 + seconds) * 1000;
+    }
+    return sum;
+  }, 0);
+
+  return (totalMs / tasks.length) / (1000 * 3600); // Convert ms to hours
+}
+
+// Render a chart using Chart.js
+function renderChart(canvasId, title, labels, data) {
+  const ctx = document.getElementById(canvasId).getContext('2d');
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: title,
+        data,
+        backgroundColor: ['#4caf50', '#f44336'],
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        title: { display: true, text: title }
+      }
+    }
+  });
 }
 
 // Add event listeners for company and employee forms
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
   // Company form
   const companyForm = document.getElementById('companyForm');
   if (companyForm) {
     companyForm.addEventListener('submit', saveCompany);
   }
-  
+
   // Employee form
   const employeeForm = document.getElementById('employeeForm');
   if (employeeForm) {
     employeeForm.addEventListener('submit', saveEmployee);
   }
-  
+
   // Add company button
   const addCompanyBtn = document.getElementById('addCompanyBtn');
   if (addCompanyBtn) {
-    addCompanyBtn.addEventListener('click', function() {
+    addCompanyBtn.addEventListener('click', function () {
       loadParentCompanies();
       const companyModal = new bootstrap.Modal(document.getElementById('companyModal'));
       companyModal.show();
-      
+
       // Initialize company map after modal is shown
-      companyModal._element.addEventListener('shown.bs.modal', function() {
+      companyModal._element.addEventListener('shown.bs.modal', function () {
         setTimeout(initCompanyMap, 300);
       });
     });
   }
-  
+
   // Add employee button
   const addEmployeeBtn = document.getElementById('addEmployeeBtn');
   if (addEmployeeBtn) {
-    addEmployeeBtn.addEventListener('click', function() {
+    addEmployeeBtn.addEventListener('click', function () {
       const employeeModal = new bootstrap.Modal(document.getElementById('employeeModal'));
       employeeModal.show();
     });
   }
-  
+
   // Manage employees button
   const manageEmployeesBtn = document.getElementById('manageEmployeesBtn');
   if (manageEmployeesBtn) {
-    manageEmployeesBtn.addEventListener('click', function() {
+    manageEmployeesBtn.addEventListener('click', function () {
       loadEmployeesTable();
       const manageEmployeesModal = new bootstrap.Modal(document.getElementById('manageEmployeesModal'));
       manageEmployeesModal.show();
     });
   }
-  
+
   // Company modal event to fix map
   const companyModalElement = document.getElementById('companyModal');
   if (companyModalElement) {
-    companyModalElement.addEventListener('shown.bs.modal', function() {
+    companyModalElement.addEventListener('shown.bs.modal', function () {
       setTimeout(initCompanyMap, 300);
     });
   }

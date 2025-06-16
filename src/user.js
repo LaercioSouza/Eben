@@ -1,4 +1,4 @@
-
+//user.js
 // Global variables
 let currentUserId = null;
 let map = null;
@@ -8,26 +8,40 @@ let watchId = null;
 let currentCoordinates = null;
 let currentTask = null;
 
+// Variáveis para cancelamento
+let currentCancellationTask = null;
+let cameraStream = null;
+
 // Initialize the application
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
   // Check if the user is already logged in
   checkLogin();
-  
+
   // Event listeners
   document.getElementById('loginForm').addEventListener('submit', login);
   document.getElementById('btn-logout').addEventListener('click', logout);
-  
+
   // Load task list if user is logged in
   if (currentUserId) {
     loadTaskList();
   }
+
+  // Event listeners para cancelamento
+  document.getElementById('capture-btn').addEventListener('click', function () {
+    const photoData = capturePhoto();
+    const preview = document.getElementById('photo-preview');
+    preview.innerHTML = `<img src="${photoData}" class="img-fluid rounded" alt="Foto do local">`;
+  });
+
+  document.getElementById('confirm-cancel-btn').addEventListener('click', cancelTask);
+  document.getElementById('cancelTaskModal').addEventListener('hidden.bs.modal', stopCamera);
 });
 
 // Check if user is logged in
 function checkLogin() {
   const userId = localStorage.getItem('currentUserId');
   const userName = localStorage.getItem('currentUserName');
-  
+
   if (userId && userName) {
     // User is logged in
     currentUserId = parseInt(userId);
@@ -50,13 +64,13 @@ function showUserPanel(userName) {
   document.getElementById('login-container').classList.add('d-none');
   document.getElementById('user-panel').classList.remove('d-none');
   document.getElementById('current-user-name').textContent = userName;
-  
+
   // Initialize the map
   initializeMap();
-  
+
   // Start tracking user's location
   startLocationTracking();
-  
+
   // Load user's tasks
   loadTaskList();
 }
@@ -64,45 +78,49 @@ function showUserPanel(userName) {
 // Login function
 function login(e) {
   e.preventDefault();
-  
+
   const userId = document.getElementById('userSelect').value;
   if (!userId) {
     alert('Por favor, selecione um usuário');
     return;
   }
-  
-  // Get user details
-  const employees = window.dataService.getAll(window.dataService.DATA_TYPES.EMPLOYEES);
-  const user = employees.find(emp => emp.id === parseInt(userId));
-  
-  if (!user) {
-    alert('Usuário não encontrado');
-    return;
-  }
-  
-  // Save user to localStorage
-  localStorage.setItem('currentUserId', userId);
-  localStorage.setItem('currentUserName', user.nome);
-  
-  // Set current user
-  currentUserId = parseInt(userId);
-  
-  // Show user panel
-  showUserPanel(user.nome);
+
+  fetch("https://localhost/EBEN/api/listemploye.php")
+    .then(response => response.json())
+    .then(users => {
+      const user = users.find(u => u.id === userId || u.id === parseInt(userId));
+
+      if (!user) {
+        alert('Usuário não encontrado');
+        return;
+      }
+
+      // Definir o usuário atual
+      currentUserId = user.id;
+      
+
+      // Exibir painel do usuário
+      showUserPanel(user.nome);
+      
+    })
+    .catch(error => {
+      console.error('Erro ao carregar funcionários:', error);
+      alert('Erro ao tentar fazer login. Verifique sua conexão.');
+    });
 }
 
 // Logout function
 function logout(e) {
   e.preventDefault();
-  
+
   // Clear user data
   localStorage.removeItem('currentUserId');
   localStorage.removeItem('currentUserName');
   currentUserId = null;
-  
+
   // Stop location tracking
   stopLocationTracking();
-  
+
   // Show login panel
   showLoginPanel();
   loadEmployees();
@@ -110,14 +128,32 @@ function logout(e) {
 
 // Load employees for login select
 function loadEmployees() {
+  fetch("https://localhost/EBEN/api/listemploye.php")
+    .then(response => response.json())
+    .then(funcionarios => {
+    const userSelect = document.getElementById('userSelect');
+    userSelect.innerHTML = '<option value="">Selecione seu usuário</option>';
+    funcionarios.forEach(employee => {
+    const option = document.createElement('option');
+    option.value = employee.id;
+    option.textContent = employee.nome;
+    userSelect.appendChild(option);
+  });
+    
+    })
+    .catch(error => {
+      console.error('Erro ao carregar funcionários:', error)
+    });
+
+  /*
   const userSelect = document.getElementById('userSelect');
-  
+
   // Get employees from data service
   const employees = window.dataService.getAll(window.dataService.DATA_TYPES.EMPLOYEES);
-  
+
   // Clear existing options
   userSelect.innerHTML = '<option value="">Selecione seu usuário</option>';
-  
+
   // Add each employee as an option
   employees.forEach(employee => {
     const option = document.createElement('option');
@@ -125,6 +161,7 @@ function loadEmployees() {
     option.textContent = employee.nome;
     userSelect.appendChild(option);
   });
+  */
 }
 
 // Initialize map
@@ -132,11 +169,11 @@ function initializeMap() {
   // Create map if it doesn't exist
   if (!map) {
     map = L.map('map').setView([-2.9055, -41.7734], 13);
-    
+
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
-    
+
     // Create user location marker (green)
     const userIcon = L.icon({
       iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
@@ -146,11 +183,11 @@ function initializeMap() {
       popupAnchor: [1, -34],
       shadowSize: [41, 41]
     });
-    
+
     userMarker = L.marker([-2.9055, -41.7734], {
       icon: userIcon
     }).addTo(map);
-    
+
     userMarker.bindPopup('Sua localização atual').openPopup();
   }
 }
@@ -161,7 +198,7 @@ function startLocationTracking() {
     // Update the status indicator
     document.getElementById('status-indicator').style.backgroundColor = '#28a745';
     document.getElementById('location-status').textContent = 'Rastreando sua localização em tempo real...';
-    
+
     // Start watching position
     watchId = navigator.geolocation.watchPosition(
       updateLocation,
@@ -181,17 +218,17 @@ function startLocationTracking() {
 function updateLocation(position) {
   const { latitude, longitude } = position.coords;
   currentCoordinates = `${longitude},${latitude}`;
-  
+
   // Update marker position
   if (userMarker) {
     userMarker.setLatLng([latitude, longitude]);
     map.setView([latitude, longitude], map.getZoom());
   }
-  
+
   // Update status indicator
   document.getElementById('status-indicator').style.backgroundColor = '#28a745';
   document.getElementById('location-status').textContent = 'Localização sendo rastreada em tempo real';
-  
+
   // If there's an active task, update it
   if (currentTask) {
     // This would update the current location for the active task if needed
@@ -202,8 +239,8 @@ function updateLocation(position) {
 // Handle location errors
 function handleLocationError(error) {
   let errorMessage = 'Erro ao obter sua localização.';
-  
-  switch(error.code) {
+
+  switch (error.code) {
     case 1:
       errorMessage = 'Permissão negada para geolocalização.';
       break;
@@ -214,7 +251,7 @@ function handleLocationError(error) {
       errorMessage = 'Tempo esgotado ao obter localização.';
       break;
   }
-  
+
   // Update status indicator
   document.getElementById('status-indicator').style.backgroundColor = '#dc3545';
   document.getElementById('location-status').textContent = errorMessage;
@@ -226,7 +263,7 @@ function stopLocationTracking() {
     navigator.geolocation.clearWatch(watchId);
     watchId = null;
   }
-  
+
   // Clear the map
   if (map) {
     map.remove();
@@ -236,19 +273,47 @@ function stopLocationTracking() {
 
 // Load user's tasks
 function loadTaskList() {
-  if (!currentUserId) return;
-  
+  const nomeUsuario = document.getElementById("current-user-name").textContent.trim();
+  if (!nomeUsuario) return;
+
   const taskList = document.getElementById('task-list');
-  
-  // Get all tasks from data service
-  const allTasks = window.dataService.getAll(window.dataService.DATA_TYPES.TASKS);
-  
-  // Filter tasks for current user
-  const userTasks = allTasks.filter(task => task.colaboradorId === currentUserId);
-  
+
+  fetch("https://localhost/EBEN/api/tasklist.php")
+    .then(response => response.json())
+    .then(tasks => {
+      
+      // Filtrar tarefas do usuário atual pelo nome
+      const userTasks = tasks.filter(task => task.colaborador === nomeUsuario);
+
+      // Mapear os campos do banco para os nomes esperados pelo sistema
+      const mappedTasks = userTasks.map(task => ({
+        id: task.id,
+        colaboradorId: task.colaborador,
+        data: task.data_tarefa,
+        hora: task.hora_tarefa,
+        empresaNome: task.empresa,
+        status: task.status,
+        descricao: task.descricao || '',
+        coordinates: task.coordenadas // AGORA ESTAMOS INCLUINDO AS COORDENADAS
+      }));
+
+      renderTaskList(mappedTasks, taskList);
+    })
+    .catch(error => {
+      console.error('Erro ao carregar tarefas:', error);
+      taskList.innerHTML = `
+        <div class="text-center py-4 text-danger">
+          <p>Erro ao carregar tarefas</p>
+        </div>
+      `;
+    });
+}
+
+// Função que renderiza a lista de tarefas (baseada no seu código original)
+function renderTaskList(userTasks, taskList) {
   // Clear existing task markers
   clearTaskMarkers();
-  
+
   if (userTasks.length === 0) {
     taskList.innerHTML = `
       <div class="text-center py-4 text-muted">
@@ -257,64 +322,76 @@ function loadTaskList() {
     `;
     return;
   }
-  
-  // Separate tasks into active and completed
-  const pendingTasks = userTasks.filter(task => task.status !== 'concluida');
-  const completedTasks = userTasks.filter(task => task.status === 'concluida');
-  
+
+  // Calcular datas limites
+  const today = new Date();
+  const futureDate = new Date(today);
+  futureDate.setDate(today.getDate() + 6);
+  const pastDate = new Date(today);
+  pastDate.setDate(today.getDate() - 6);
+
+  const todayStr = today.toISOString().split('T')[0];
+  const futureDateStr = futureDate.toISOString().split('T')[0];
+  const pastDateStr = pastDate.toISOString().split('T')[0];
+
+  // Filtrar tarefas pendentes
+  const pendingTasks = userTasks.filter(task =>
+    task.status !== 'concluida' &&
+    (task.data <= futureDateStr || task.data < todayStr)
+  );
+
+  // Filtrar tarefas concluídas
+  const completedTasks = userTasks.filter(task =>
+    task.status === 'concluida' &&
+    task.data >= pastDateStr &&
+    task.data <= futureDateStr
+  );
+
   // Generate HTML for task list
   let html = '';
-  
+
   // Active tasks section
   if (pendingTasks.length > 0) {
-    html += '<h5 class="my-3">Tarefas Ativas</h5>';
-    
-    pendingTasks.forEach(task => {
-      // Format date (DD/MM/YYYY)
+    html += `
+      <div class="accordion mb-3" id="active-tasks-accordion">
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#active-tasks-collapse" aria-expanded="true">
+              <i class="bi bi-chevron-down me-2 collapse-icon"></i> Tarefas Ativas
+            </button>
+          </h2>
+          <div id="active-tasks-collapse" class="accordion-collapse collapse show" data-bs-parent="#active-tasks-accordion">
+            <div class="accordion-body p-0">
+    `;
+
+    // Ordenar e processar tarefas pendentes
+    pendingTasks.sort((a, b) => new Date(a.data) - new Date(b.data)).forEach(task => {
       const dateParts = task.data.split('-');
       const formattedDate = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
       
-      // Determine badge style based on status
       let badgeClass = 'bg-secondary';
       let statusText = 'Pendente';
-      
-      switch(task.status) {
-        case 'pendente':
-          badgeClass = 'bg-warning text-dark';
-          statusText = 'Pendente';
-          break;
-        case 'em_translado':
-          badgeClass = 'bg-warning text-dark';
-          statusText = 'Em Translado';
-          break;
-        case 'aguardando_inicio':
-          badgeClass = 'bg-info text-dark';
-          statusText = 'Aguardando Início';
-          break;
-        case 'em_andamento':
-          badgeClass = 'bg-primary';
-          statusText = 'Em Andamento';
-          break;
-        case 'pausada':
-          badgeClass = 'bg-info text-dark';
-          statusText = 'Pausada';
-          break;
-        case 'aguardando_retorno':
-          badgeClass = 'bg-info text-dark';
-          statusText = 'Aguardando Retorno';
-          break;
-        case 'retornando':
-          badgeClass = 'bg-warning text-dark';
-          statusText = 'Retornando';
-          break;
-        case 'finalizado':
-          badgeClass = 'bg-info text-dark';
-          statusText = 'Finalizado';
-          break;
+      const isLate = new Date(task.data + 'T' + task.hora) < new Date();
+
+      if (isLate && task.status === 'pendente') {
+        badgeClass = 'bg-danger';
+        statusText = 'Atrasada';
+      } else {
+        switch (task.status) {
+          case 'pendente': badgeClass = 'bg-warning text-dark'; break;
+          case 'em_translado': badgeClass = 'bg-warning text-dark'; statusText = 'Em Translado'; break;
+          case 'aguardando_inicio': badgeClass = 'bg-info text-dark'; statusText = 'Aguardando Início'; break;
+          case 'em_andamento': badgeClass = 'bg-primary'; statusText = 'Em Andamento'; break;
+          case 'pausada': badgeClass = 'bg-info text-dark'; statusText = 'Pausada'; break;
+          case 'aguardando_retorno': badgeClass = 'bg-info text-dark'; statusText = 'Aguardando Retorno'; break;
+          case 'retornando': badgeClass = 'bg-warning text-dark'; statusText = 'Retornando'; break;
+          case 'finalizado': badgeClass = 'bg-info text-dark'; statusText = 'Finalizado'; break;
+          case 'cancelada': badgeClass = 'bg-dark'; statusText = 'Cancelada'; break;
+        }
       }
-      
+
       html += `
-        <div class="list-group-item task-item" data-id="${task.id}" data-bs-toggle="modal" data-bs-target="#taskDetailModal">
+        <div class="list-group-item task-item ${isLate ? 'task-late' : ''}" data-id="${task.id}" data-bs-toggle="modal" data-bs-target="#taskDetailModal">
           <div class="d-flex justify-content-between align-items-center">
             <div>
               <h6 class="mb-1">${task.empresaNome}</h6>
@@ -323,32 +400,46 @@ function loadTaskList() {
             <span class="badge ${badgeClass}">${statusText}</span>
           </div>
           <p class="mb-1 small task-description">${task.descricao.length > 100 ? task.descricao.substring(0, 100) + '...' : task.descricao}</p>
+          ${isLate ? '<small class="text-danger"><i class="bi bi-exclamation-circle"></i> Esta tarefa está atrasada</small>' : ''}
         </div>
       `;
-      
-      // Add task marker to map
+
       addTaskMarker(task);
     });
+
+    html += `
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
   }
-  
-  // Completed tasks section with dropdown
+
+  // Completed tasks section
   if (completedTasks.length > 0) {
     html += `
-      <h5 class="mt-4 mb-2">Tarefas Concluídas</h5>
-      <div class="mb-2">
-        <select class="form-select form-select-sm" id="completed-date-filter">
-          <option value="">Todas as datas</option>
-          ${getUniqueDates(completedTasks).map(date => `<option value="${date}">${formatDate(date)}</option>`).join('')}
-        </select>
-      </div>
-      <div id="completed-tasks-container">
+      <div class="accordion" id="completed-tasks-accordion">
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#completed-tasks-collapse" aria-expanded="false">
+              <i class="bi bi-chevron-down me-2 collapse-icon"></i> Tarefas Concluídas
+            </button>
+          </h2>
+          <div id="completed-tasks-collapse" class="accordion-collapse collapse" data-bs-parent="#completed-tasks-accordion">
+            <div class="accordion-body p-0">
+              <div class="mb-2">
+                <select class="form-select form-select-sm" id="completed-date-filter">
+                  <option value="">Todas as datas</option>
+                  ${getUniqueDates(completedTasks).map(date => `<option value="${date}">${formatDate(date)}</option>`).join('')}
+                </select>
+              </div>
+              <div id="completed-tasks-container">
     `;
-    
+
     completedTasks.forEach(task => {
-      // Format date (DD/MM/YYYY)
       const dateParts = task.data.split('-');
       const formattedDate = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
-      
+
       html += `
         <div class="list-group-item task-item completed-task" data-id="${task.id}" data-date="${task.data}" data-bs-toggle="modal" data-bs-target="#taskDetailModal">
           <div class="d-flex justify-content-between align-items-center">
@@ -361,32 +452,60 @@ function loadTaskList() {
           <p class="mb-1 small task-description">${task.descricao.length > 100 ? task.descricao.substring(0, 100) + '...' : task.descricao}</p>
         </div>
       `;
-      
-      // Add task marker to map with different color for completed tasks
+
       addTaskMarker(task, true);
     });
-    
-    html += '</div>';
+
+    html += `
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
   }
-  
+
+  if (!html) {
+    taskList.innerHTML = `
+      <div class="text-center py-4 text-muted">
+        <p>Nenhuma tarefa para exibir</p>
+      </div>
+    `;
+    return;
+  }
+
   taskList.innerHTML = html;
-  
-  // Add click event listeners to task items
+
+  // Adicionar event listeners
   document.querySelectorAll('.task-item').forEach(item => {
     item.addEventListener('click', function() {
-      const taskId = parseInt(this.getAttribute('data-id'));
+      const taskId = this.getAttribute('data-id');
       showTaskDetails(taskId);
     });
   });
-  
-  // Add change event listener to date filter
+
   const dateFilter = document.getElementById('completed-date-filter');
   if (dateFilter) {
     dateFilter.addEventListener('change', function() {
       filterCompletedTasks(this.value);
     });
   }
+
+  document.querySelectorAll('.accordion-button').forEach(button => {
+    button.addEventListener('click', function() {
+      const icon = this.querySelector('.collapse-icon');
+      if (icon) {
+        icon.style.transform = this.classList.contains('collapsed') 
+          ? 'rotate(0deg)' 
+          : 'rotate(180deg)';
+      }
+    });
+  });
 }
+
+
+
+
 
 // Get unique dates from completed tasks
 function getUniqueDates(tasks) {
@@ -403,7 +522,7 @@ function formatDate(dateStr) {
 // Filter completed tasks by date
 function filterCompletedTasks(date) {
   const completedTasks = document.querySelectorAll('.completed-task');
-  
+
   if (!date) {
     // Show all
     completedTasks.forEach(task => {
@@ -423,22 +542,25 @@ function filterCompletedTasks(date) {
 
 // Add task marker to the map
 function addTaskMarker(task, completed = false) {
-  if (!map) return;
   
+  if (!map) return;
+
   // Parse coordinates
   const [lng, lat] = task.coordinates.split(',').map(parseFloat);
-  
+
   // Choose icon color based on task status
   let iconColor = 'red'; // Default for pending
-  
+
   if (completed) {
     iconColor = 'green';
   } else if (task.status === 'em_andamento' || task.status === 'pausada') {
     iconColor = 'blue';
   } else if (task.status === 'em_translado' || task.status === 'retornando') {
     iconColor = 'orange';
+  } else if (task.status === 'cancelada') {
+    iconColor = 'black';
   }
-  
+
   // Create icon
   const taskIcon = L.icon({
     iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${iconColor}.png`,
@@ -448,16 +570,16 @@ function addTaskMarker(task, completed = false) {
     popupAnchor: [1, -34],
     shadowSize: [41, 41]
   });
-  
+
   // Create marker
   const marker = L.marker([lat, lng], {
     icon: taskIcon
   }).addTo(map);
-  
+
   // Format date (DD/MM/YYYY)
   const dateParts = task.data.split('-');
   const formattedDate = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
-  
+
   // Create popup with task details
   marker.bindPopup(`
     <strong>${task.empresaNome}</strong><br>
@@ -465,12 +587,12 @@ function addTaskMarker(task, completed = false) {
     <small>${task.descricao.substring(0, 50)}${task.descricao.length > 50 ? '...' : ''}</small><br>
     <button class="btn btn-sm btn-primary mt-2 view-task-btn" data-id="${task.id}">Ver Detalhes</button>
   `);
-  
+
   // Add click handler to the button in popup
-  marker.on('popupopen', function() {
+  marker.on('popupopen', function () {
     const viewBtn = document.querySelector(`.view-task-btn[data-id="${task.id}"]`);
     if (viewBtn) {
-      viewBtn.addEventListener('click', function() {
+      viewBtn.addEventListener('click', function () {
         showTaskDetails(task.id);
         // Open the modal
         const modal = new bootstrap.Modal(document.getElementById('taskDetailModal'));
@@ -478,7 +600,7 @@ function addTaskMarker(task, completed = false) {
       });
     }
   });
-  
+
   // Store the marker to clear it later
   taskMarkers.push(marker);
 }
@@ -493,219 +615,231 @@ function clearTaskMarkers() {
 
 // Show task details in modal
 function showTaskDetails(taskId) {
-  // Get task from data service
-  const task = window.dataService.getById(window.dataService.DATA_TYPES.TASKS, taskId);
-  
-  if (!task) return;
-  
-  // Set current task
-  currentTask = task;
-  
-  // Format date for display (DD/MM/YYYY)
-  const dateParts = task.data.split('-');
-  const formattedDate = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
-  
-  // Update modal content
-  const detailContent = document.getElementById('task-detail-content');
-  const modalFooter = document.querySelector('#taskDetailModal .modal-footer');
-  
-  let statusBadge = '';
-  switch(task.status) {
-    case 'pendente':
-      statusBadge = '<span class="badge bg-warning text-dark">Pendente</span>';
-      break;
-    case 'em_translado':
-      statusBadge = '<span class="badge bg-warning text-dark">Em Translado</span>';
-      break;
-    case 'aguardando_inicio':
-      statusBadge = '<span class="badge bg-info text-dark">Aguardando Início</span>';
-      break;
-    case 'em_andamento':
-      statusBadge = '<span class="badge bg-primary">Em Andamento</span>';
-      break;
-    case 'pausada':
-      statusBadge = '<span class="badge bg-info text-dark">Pausada</span>';
-      break;
-    case 'aguardando_retorno':
-      statusBadge = '<span class="badge bg-info text-dark">Aguardando Retorno</span>';
-      break;
-    case 'retornando':
-      statusBadge = '<span class="badge bg-warning text-dark">Retornando</span>';
-      break;
-    case 'finalizado':
-      statusBadge = '<span class="badge bg-info text-dark">Finalizado</span>';
-      break;
-    case 'concluida':
-      statusBadge = '<span class="badge bg-success">Concluída</span>';
-      break;
-  }
-  
-  detailContent.innerHTML = `
-    <h5>${task.empresaNome}</h5>
-    <p><strong>Data:</strong> ${formattedDate} às ${task.hora}</p>
-    <p><strong>Status:</strong> ${statusBadge}</p>
-    <p><strong>Descrição:</strong></p>
-    <div class="border p-2 bg-light mb-3">${task.descricao}</div>
-  `;
-  
-  // Add report information if available
-  if (task.report) {
-    let reportHtml = '<h6>Relatório de Atividade:</h6><div class="border p-2 bg-light mb-3">';
-    
-    if (task.report.transitTime) {
-      reportHtml += `<p><small><strong>Tempo de Translado (Ida):</strong> ${task.report.transitTime}</small></p>`;
-    }
-    
-    if (task.report.workTime) {
-      reportHtml += `<p><small><strong>Tempo de Trabalho:</strong> ${task.report.workTime}</small></p>`;
-    }
-    
-    if (task.report.pauseTime) {
-      reportHtml += `<p><small><strong>Tempo em Pausa:</strong> ${task.report.pauseTime}</small></p>`;
-    }
-    
-    if (task.report.returnTransitTime) {
-      reportHtml += `<p><small><strong>Tempo de Translado (Volta):</strong> ${task.report.returnTransitTime}</small></p>`;
-    }
-    
-    if (task.report.observations) {
-      reportHtml += `<p><small><strong>Observações:</strong> ${task.report.observations}</small></p>`;
-    }
-    
-    reportHtml += '</div>';
-    
-    detailContent.innerHTML += reportHtml;
-  }
-  
-  // Clear existing buttons
-  modalFooter.innerHTML = '<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>';
-  
-  // Add action buttons based on task status
-  if (task.status === 'pendente') {
-    modalFooter.innerHTML += `
-      <button type="button" class="btn btn-primary" id="start-transit-btn">
-        <i class="bi bi-truck"></i> Iniciar Translado
-      </button>
-    `;
-    
-    // Add event listener
-    setTimeout(() => {
-      document.getElementById('start-transit-btn').addEventListener('click', startTransit);
-    }, 100);
-  }
-  else if (task.status === 'em_translado') {
-    modalFooter.innerHTML += `
-      <button type="button" class="btn btn-primary" id="end-transit-btn">
-        <i class="bi bi-check2-circle"></i> Encerrar Translado
-      </button>
-    `;
-    
-    // Add event listener
-    setTimeout(() => {
-      document.getElementById('end-transit-btn').addEventListener('click', endTransit);
-    }, 100);
-  }
-  else if (task.status === 'aguardando_inicio') {
-    modalFooter.innerHTML += `
-      <button type="button" class="btn btn-primary" id="start-task-btn">
-        <i class="bi bi-play-circle"></i> Iniciar Atendimento
-      </button>
-    `;
-    
-    // Add event listener
-    setTimeout(() => {
-      document.getElementById('start-task-btn').addEventListener('click', startTask);
-    }, 100);
-  }
-  else if (task.status === 'em_andamento') {
-    modalFooter.innerHTML += `
-      <button type="button" class="btn btn-warning me-2" id="pause-task-btn">
-        <i class="bi bi-pause-circle"></i> Pausar
-      </button>
-      <button type="button" class="btn btn-success" id="complete-task-btn">
-        <i class="bi bi-check2-circle"></i> Concluir
-      </button>
-    `;
-    
-    // Add event listeners
-    setTimeout(() => {
-      document.getElementById('pause-task-btn').addEventListener('click', pauseTask);
-      document.getElementById('complete-task-btn').addEventListener('click', completeTask);
-    }, 100);
-  }
-  else if (task.status === 'pausada') {
-    modalFooter.innerHTML += `
-      <button type="button" class="btn btn-primary" id="resume-task-btn">
-        <i class="bi bi-play-circle"></i> Retomar
-      </button>
-    `;
-    
-    // Add event listener
-    setTimeout(() => {
-      document.getElementById('resume-task-btn').addEventListener('click', resumeTask);
-    }, 100);
-  }
-  else if (task.status === 'aguardando_retorno') {
-    modalFooter.innerHTML += `
-      <button type="button" class="btn btn-primary" id="start-return-btn">
-        <i class="bi bi-truck"></i> Iniciar Retorno
-      </button>
-    `;
-    
-    // Add event listener
-    setTimeout(() => {
-      document.getElementById('start-return-btn').addEventListener('click', startReturnTransit);
-    }, 100);
-  }
-  else if (task.status === 'retornando') {
-    modalFooter.innerHTML += `
-      <button type="button" class="btn btn-primary" id="end-return-btn">
-        <i class="bi bi-check2-circle"></i> Encerrar Retorno
-      </button>
-    `;
-    
-    // Add event listener
-    setTimeout(() => {
-      document.getElementById('end-return-btn').addEventListener('click', endReturnTransit);
-    }, 100);
-  }
-  else if (task.status === 'finalizado') {
-    modalFooter.innerHTML += `
-      <button type="button" class="btn btn-success" id="finalize-task-btn">
-        <i class="bi bi-check2-all"></i> Finalizar Tarefa
-      </button>
-    `;
-    
-    // Add event listener
-    setTimeout(() => {
-      document.getElementById('finalize-task-btn').addEventListener('click', finalizeTask);
-    }, 100);
-  }
+  const idSelect =  {id: taskId};
+    // Fazer requisição à API para obter os detalhes da tarefa
+  fetch("https://localhost/EBEN/api/showtaskid.php", {
+    method: 'POST',
+    headers: {
+        'Content-Type':'application/json'
+        },
+        body: JSON.stringify(idSelect)
+  })
+    .then(response => response.json())
+    .then(task => {
+      console.log(task)
+      if (!task) {
+        console.error('Tarefa não encontrada');
+        return;
+      }
+
+      // Set current task
+      currentTask = task;
+
+      // Format date for display (DD/MM/YYYY)
+      const dateParts = task.data_tarefa.split('-');
+      const formattedDate = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+
+      // Update modal content
+      const detailContent = document.getElementById('task-detail-content');
+      const modalFooter = document.querySelector('#taskDetailModal .modal-footer');
+
+      let statusBadge = '';
+      switch (task.status) {
+        case 'pendente':
+          statusBadge = '<span class="badge bg-warning text-dark">Pendente</span>';
+          break;
+        case 'em_translado':
+          statusBadge = '<span class="badge bg-warning text-dark">Em Translado</span>';
+          break;
+        case 'aguardando_inicio':
+          statusBadge = '<span class="badge bg-info text-dark">Aguardando Início</span>';
+          break;
+        case 'em_andamento':
+          statusBadge = '<span class="badge bg-primary">Em Andamento</span>';
+          break;
+        case 'pausada':
+          statusBadge = '<span class="badge bg-info text-dark">Pausada</span>';
+          break;
+        case 'aguardando_retorno':
+          statusBadge = '<span class="badge bg-info text-dark">Aguardando Retorno</span>';
+          break;
+        case 'retornando':
+          statusBadge = '<span class="badge bg-warning text-dark">Retornando</span>';
+          break;
+        case 'finalizado':
+          statusBadge = '<span class="badge bg-info text-dark">Finalizado</span>';
+          break;
+        case 'concluida':
+          statusBadge = '<span class="badge bg-success">Concluída</span>';
+          break;
+        case 'cancelada':
+          statusBadge = '<span class="badge bg-dark">Cancelada</span>';
+          break;
+      }
+
+      detailContent.innerHTML = `
+        <h5>${task.empresa}</h5>
+        <p><strong>Responsável no local:</strong> ${task.responsavel || 'Não informado'}</p>
+        <p><strong>Data:</strong> ${formattedDate} às ${task.hora_tarefa}</p>
+        <p><strong>Status:</strong> ${statusBadge}</p>
+        <p><strong>Descrição:</strong></p>
+        <div class="border p-2 bg-light mb-3">${task.descricao}</div>
+      `;
+
+      // Add report information if available
+      // NOTA: Se sua API retorna relatório, adicione aqui
+      if (task.report) {
+        // ... código para exibir relatório ...
+      }
+
+      // Clear existing buttons
+      modalFooter.innerHTML = '<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>';
+
+      // FLUXO DE BOTÕES
+      if (task.status === 'pendente') {
+        modalFooter.innerHTML += `
+          <button type="button" class="btn btn-primary" id="start-transit-btn">
+            <i class="bi bi-truck"></i> Iniciar Translado
+          </button>
+        `;
+        setTimeout(() => {
+          document.getElementById('start-transit-btn').addEventListener('click', startTransit);
+        }, 100);
+      }
+      else if (task.status === 'em_translado') {
+        modalFooter.innerHTML += `
+          <button type="button" class="btn btn-primary" id="end-transit-btn">
+            <i class="bi bi-check2-circle"></i> Terminar Translado
+          </button>
+        `;
+        setTimeout(() => {
+          document.getElementById('end-transit-btn').addEventListener('click', endTransit);
+        }, 100);
+      }
+      else if (task.status === 'aguardando_inicio') {
+        modalFooter.innerHTML += `
+          <button type="button" class="btn btn-primary" id="start-task-btn">
+            <i class="bi bi-play-circle"></i> Iniciar Atendimento
+          </button>
+        `;
+        setTimeout(() => {
+          document.getElementById('start-task-btn').addEventListener('click', startTask);
+        }, 100);
+      }
+      else if (task.status === 'em_andamento') {
+        modalFooter.innerHTML += `
+          <button type="button" class="btn btn-warning me-2" id="pause-task-btn">
+            <i class="bi bi-pause-circle"></i> Pausar
+          </button>
+          <button type="button" class="btn btn-success" id="complete-task-btn">
+            <i class="bi bi-check2-circle"></i> Terminar Atendimento
+          </button>
+        `;
+        setTimeout(() => {
+          document.getElementById('pause-task-btn').addEventListener('click', pauseTask);
+          document.getElementById('complete-task-btn').addEventListener('click', completeTask);
+        }, 100);
+      }
+      else if (task.status === 'pausada') {
+        modalFooter.innerHTML += `
+          <button type="button" class="btn btn-primary" id="resume-task-btn">
+            <i class="bi bi-play-circle"></i> Retomar
+          </button>
+        `;
+        setTimeout(() => {
+          document.getElementById('resume-task-btn').addEventListener('click', resumeTask);
+        }, 100);
+      }
+      else if (task.status === 'aguardando_retorno') {
+        modalFooter.innerHTML += `
+          <button type="button" class="btn btn-primary" id="start-return-btn">
+            <i class="bi bi-truck"></i> Iniciar Translado de Volta
+          </button>
+        `;
+        setTimeout(() => {
+          document.getElementById('start-return-btn').addEventListener('click', startReturnTransit);
+        }, 100);
+      }
+      else if (task.status === 'retornando') {
+        modalFooter.innerHTML += `
+          <button type="button" class="btn btn-primary" id="end-return-btn">
+            <i class="bi bi-check2-circle"></i> Terminar Translado de Volta
+          </button>
+        `;
+        setTimeout(() => {
+          const endReturnBtn = document.getElementById('end-return-btn');
+          if (endReturnBtn) {
+            endReturnBtn.addEventListener('click', endReturnTransit);
+          }
+        }, 100);
+      }
+      else if (task.status === 'finalizado') {
+        modalFooter.innerHTML += `
+          <button type="button" class="btn btn-success" id="finalize-task-btn">
+            <i class="bi bi-check2-all"></i> Concluir Tarefa
+          </button>
+        `;
+        setTimeout(() => {
+          document.getElementById('finalize-task-btn').addEventListener('click', finalizeTask);
+        }, 100);
+      }
+
+      // Adicionar botão de cancelamento
+      if (['pendente', 'em_translado', 'aguardando_inicio', 'em_andamento', 'pausada'].includes(task.status)) {
+        modalFooter.innerHTML += `
+          <button type="button" class="btn btn-danger" id="cancel-task-btn">
+            <i class="bi bi-x-circle"></i> Cancelar Tarefa
+          </button>
+        `;
+
+        setTimeout(() => {
+          document.getElementById('cancel-task-btn').addEventListener('click', function () {
+            currentCancellationTask = task;
+            document.getElementById('cancel-reason').value = '';
+            document.getElementById('photo-preview').innerHTML = '';
+
+            const cancelModal = new bootstrap.Modal(document.getElementById('cancelTaskModal'));
+
+            const cancelModalEl = document.getElementById('cancelTaskModal');
+            const handler = function () {
+              startCamera();
+              cancelModalEl.removeEventListener('shown.bs.modal', handler);
+            };
+
+            cancelModalEl.addEventListener('shown.bs.modal', handler);
+            cancelModal.show();
+          });
+        }, 100);
+      }
+    })
+    .catch(error => {
+      console.error('Erro ao carregar detalhes da tarefa:', error);
+    });
 }
 
 // Start transit function
 function startTransit() {
   if (!currentTask) return;
-  
+
   if (!currentCoordinates) {
     alert('Não foi possível obter sua localização atual. Por favor, verifique as permissões de localização.');
     return;
   }
-  
+
   // Update task in data service
   const updatedTask = window.dataService.startTransit(currentTask.id, currentCoordinates);
-  
+
   if (updatedTask) {
     // Close modal
     const modal = bootstrap.Modal.getInstance(document.getElementById('taskDetailModal'));
     modal.hide();
-    
+
     // Update current task
     currentTask = updatedTask;
-    
+
     // Reload task list
     loadTaskList();
-    
+
     // Show success message
     alert('Translado iniciado com sucesso!');
   }
@@ -713,55 +847,66 @@ function startTransit() {
 
 // End transit function
 function endTransit() {
-  if (!currentTask) return;
-  
+  if (!currentTask) {
+    alert('Nenhuma tarefa ativa encontrada.');
+    return;
+  }
+
   if (!currentCoordinates) {
     alert('Não foi possível obter sua localização atual. Por favor, verifique as permissões de localização.');
     return;
   }
-  
+
+  // Ensure the task is in the correct status
+  if (currentTask.status !== 'em_translado') {
+    alert('A tarefa não está no status de "em translado".');
+    return;
+  }
+
   // Update task in data service
   const updatedTask = window.dataService.endTransit(currentTask.id, currentCoordinates);
-  
+
   if (updatedTask) {
     // Close modal
     const modal = bootstrap.Modal.getInstance(document.getElementById('taskDetailModal'));
-    modal.hide();
-    
+    if (modal) modal.hide();
+
     // Update current task
     currentTask = updatedTask;
-    
+
     // Reload task list
     loadTaskList();
-    
+
     // Show success message
     alert('Translado encerrado com sucesso!');
+  } else {
+    alert('Erro ao encerrar translado. Tente novamente.');
   }
 }
 
 // Start task function
 function startTask() {
   if (!currentTask) return;
-  
+
   if (!currentCoordinates) {
     alert('Não foi possível obter sua localização atual. Por favor, verifique as permissões de localização.');
     return;
   }
-  
+
   // Update task in data service
   const updatedTask = window.dataService.startTask(currentTask.id, currentCoordinates);
-  
+
   if (updatedTask) {
     // Close modal
     const modal = bootstrap.Modal.getInstance(document.getElementById('taskDetailModal'));
     modal.hide();
-    
+
     // Update current task
     currentTask = updatedTask;
-    
+
     // Reload task list
     loadTaskList();
-    
+
     // Show success message
     alert('Atendimento iniciado com sucesso!');
   }
@@ -770,34 +915,34 @@ function startTask() {
 // Pause task function
 function pauseTask() {
   if (!currentTask) return;
-  
+
   if (!currentCoordinates) {
     alert('Não foi possível obter sua localização atual. Por favor, verifique as permissões de localização.');
     return;
   }
-  
+
   // Prompt for pause reason
   const reason = prompt('Por favor, informe o motivo da pausa:');
-  
+
   if (reason === null) {
     // User canceled
     return;
   }
-  
+
   // Update task in data service
   const updatedTask = window.dataService.pauseTask(currentTask.id, currentCoordinates, reason);
-  
+
   if (updatedTask) {
     // Close modal
     const modal = bootstrap.Modal.getInstance(document.getElementById('taskDetailModal'));
     modal.hide();
-    
+
     // Update current task
     currentTask = updatedTask;
-    
+
     // Reload task list
     loadTaskList();
-    
+
     // Show success message
     alert('Atendimento pausado com sucesso!');
   }
@@ -806,140 +951,233 @@ function pauseTask() {
 // Resume task function
 function resumeTask() {
   if (!currentTask) return;
-  
+
   if (!currentCoordinates) {
     alert('Não foi possível obter sua localização atual. Por favor, verifique as permissões de localização.');
     return;
   }
-  
+
   // Update task in data service
   const updatedTask = window.dataService.resumeTask(currentTask.id, currentCoordinates);
-  
+
   if (updatedTask) {
     // Close modal
     const modal = bootstrap.Modal.getInstance(document.getElementById('taskDetailModal'));
     modal.hide();
-    
+
     // Update current task
     currentTask = updatedTask;
-    
+
     // Reload task list
     loadTaskList();
-    
+
     // Show success message
     alert('Atendimento retomado com sucesso!');
   }
 }
 
-// Complete task function
+// Complete task function (agora chama o formulário)
 function completeTask() {
   if (!currentTask) return;
-  
+
   if (!currentCoordinates) {
     alert('Não foi possível obter sua localização atual. Por favor, verifique as permissões de localização.');
     return;
   }
-  
-  // Prompt for observations
+
+  if (currentTask.status !== 'em_andamento') {
+    alert('Esta etapa já foi concluída!');
+    return;
+  }
+
+  // Prompt para observações
   const observations = prompt('Observações sobre o atendimento (opcional):');
-  
-  // Update task in data service
-  const updatedTask = window.dataService.completeTask(currentTask.id, currentCoordinates, observations);
-  
+
+  // Se existir handler de formulário, aciona-o primeiro
+  if (window.taskFormHandler && typeof window.taskFormHandler.completeTaskWithForm === 'function') {
+    window.taskFormHandler.completeTaskWithForm(currentTask.id);
+  }
+
+  // Atualiza a tarefa no dataService
+  const updatedTask = window.dataService.completeTask(
+    currentTask.id,
+    currentCoordinates,
+    observations
+  );
+
   if (updatedTask) {
-    // Close modal
-    const modal = bootstrap.Modal.getInstance(document.getElementById('taskDetailModal'));
-    modal.hide();
-    
-    // Update current task
+    // Fecha o modal
+    const modalEl = document.getElementById('taskDetailModal');
+    const modal = bootstrap.Modal.getInstance(modalEl);
+    if (modal) {
+      modal.hide();
+    }
+
+    // Atualiza currentTask e recarrega a lista
     currentTask = updatedTask;
-    
-    // Reload task list
     loadTaskList();
-    
-    // Show success message
+
+    // Mensagem de sucesso
     alert('Atendimento concluído com sucesso!');
+  } else {
+    console.error('Falha ao concluir a tarefa via dataService.');
   }
 }
 
 // Start return transit function
 function startReturnTransit() {
   if (!currentTask) return;
-  
+
   if (!currentCoordinates) {
     alert('Não foi possível obter sua localização atual. Por favor, verifique as permissões de localização.');
     return;
   }
-  
+
   // Update task in data service
   const updatedTask = window.dataService.startReturnTransit(currentTask.id, currentCoordinates);
-  
+
   if (updatedTask) {
     // Close modal
     const modal = bootstrap.Modal.getInstance(document.getElementById('taskDetailModal'));
     modal.hide();
-    
+
     // Update current task
     currentTask = updatedTask;
-    
+
     // Reload task list
     loadTaskList();
-    
+
     // Show success message
     alert('Retorno iniciado com sucesso!');
   }
 }
 
-// End return transit function
+// End return transit function (atualizado)
 function endReturnTransit() {
-  if (!currentTask) return;
-  
-  if (!currentCoordinates) {
-    alert('Não foi possível obter sua localização atual. Por favor, verifique as permissões de localização.');
+  if (!currentTask) {
+    alert('Nenhuma tarefa ativa encontrada.');
     return;
   }
-  
-  // Update task in data service
+
+  if (!currentCoordinates) {
+    alert('Não foi possível obter sua localização atual.');
+    return;
+  }
+
+  // Verificação crítica de status
+  if (currentTask.status !== 'retornando') {
+    alert('Ação só pode ser executada durante o translado de volta');
+    return;
+  }
+
+  // Chamar o método CORRETO do Data Service
   const updatedTask = window.dataService.endTransit(currentTask.id, currentCoordinates);
-  
+
   if (updatedTask) {
-    // Close modal
+    // Fechar modal
     const modal = bootstrap.Modal.getInstance(document.getElementById('taskDetailModal'));
-    modal.hide();
-    
-    // Update current task
+    if (modal) modal.hide();
+
+    // Atualizar tarefa
     currentTask = updatedTask;
-    
-    // Reload task list
     loadTaskList();
-    
-    // Show success message
-    alert('Retorno encerrado com sucesso!');
+    alert('Translado de volta finalizado com sucesso!');
+  } else {
+    alert('Erro ao finalizar translado de volta');
   }
 }
 
 // Finalize task function
 function finalizeTask() {
-  if (!currentTask) return;
-  
-  // Prompt for final observations
-  const finalObservations = prompt('Observações finais sobre a tarefa (opcional):');
-  
-  // Update task in data service
-  const updatedTask = window.dataService.finalizeTask(currentTask.id, finalObservations);
-  
+  if (!currentTask) {
+    alert('Nenhuma tarefa selecionada');
+    return;
+  }
+
+  // Verificar status correto
+  if (currentTask.status !== 'finalizado') {
+    alert('Só é possível concluir tarefas finalizadas');
+    return;
+  }
+
+  // Coletar observações finais
+  const observations = prompt('Observações finais (opcional):');
+
+  // Chamar o método correto do Data Service
+  const updatedTask = window.dataService.finalizeTask(currentTask.id, observations);
+
   if (updatedTask) {
-    // Close modal
+    // Fechar modal e atualizar
     const modal = bootstrap.Modal.getInstance(document.getElementById('taskDetailModal'));
-    modal.hide();
-    
-    // Update current task
+    if (modal) modal.hide();
+
     currentTask = updatedTask;
-    
-    // Reload task list
     loadTaskList();
-    
-    // Show success message
-    alert('Tarefa finalizada com sucesso!');
+    alert('Tarefa concluída com sucesso!');
+  } else {
+    alert('Erro ao concluir tarefa');
+  }
+}
+
+// Funções para cancelamento de tarefas
+async function startCamera() {
+  try {
+    const video = document.getElementById('camera-preview');
+    cameraStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment' } // Preferir câmera traseira
+    });
+    video.srcObject = cameraStream;
+  } catch (error) {
+    console.error('Erro ao acessar a câmera:', error);
+    alert('Não foi possível acessar a câmera. Verifique as permissões.');
+  }
+}
+
+function stopCamera() {
+  if (cameraStream) {
+    cameraStream.getTracks().forEach(track => track.stop());
+    cameraStream = null;
+  }
+}
+
+function capturePhoto() {
+  const video = document.getElementById('camera-preview');
+  const canvas = document.createElement('canvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL('image/jpeg');
+}
+
+function cancelTask() {
+  const reason = document.getElementById('cancel-reason').value;
+  if (!reason) {
+    alert('Por favor, informe o motivo do cancelamento.');
+    return;
+  }
+
+  const photoData = capturePhoto();
+  stopCamera();
+
+  // Atualizar a tarefa via dataService
+  const updatedTask = window.dataService.cancelTask(
+    currentCancellationTask.id,
+    reason,
+    photoData,
+    currentCoordinates
+  );
+
+  if (updatedTask) {
+    // Fechar modais
+    const cancelModal = bootstrap.Modal.getInstance(document.getElementById('cancelTaskModal'));
+    if (cancelModal) cancelModal.hide();
+
+    const taskModal = bootstrap.Modal.getInstance(document.getElementById('taskDetailModal'));
+    if (taskModal) taskModal.hide();
+
+    // Recarregar lista de tarefas
+    loadTaskList();
+    alert('Tarefa cancelada com sucesso!');
   }
 }
