@@ -626,7 +626,6 @@ function showTaskDetails(taskId) {
   })
     .then(response => response.json())
     .then(task => {
-      console.log(task)
       if (!task) {
         console.error('Tarefa não encontrada');
         return;
@@ -826,23 +825,46 @@ function startTransit() {
     return;
   }
 
-  // Update task in data service
-  const updatedTask = window.dataService.startTransit(currentTask.id, currentCoordinates);
+  // Dados para enviar à API
+  const updateData = {
+    taskId: currentTask.id,
+    newStatus: 'em_translado',
+    //coordinates: currentCoordinates,
+    startTime: new Date().toISOString() // Registrar o horário de início
+  };
 
-  if (updatedTask) {
-    // Close modal
-    const modal = bootstrap.Modal.getInstance(document.getElementById('taskDetailModal'));
-    modal.hide();
+  // Enviar atualização para o servidor
+  fetch("https://localhost/EBEN/api/updateTaskStatus.php", {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(updateData)
+  })
+  .then(response => response.json())
+  .then(result => {
+    if (result.success) {
+      // Atualizar localmente a tarefa atual
+      currentTask.status = 'em_translado';
+      currentTask.coordenadas = currentCoordinates; // Atualizar coordenadas se necessário
+      
+      // Fechar modal
+      const modal = bootstrap.Modal.getInstance(document.getElementById('taskDetailModal'));
+      if (modal) modal.hide();
 
-    // Update current task
-    currentTask = updatedTask;
+      // Atualizar lista de tarefas
+      loadTaskList();
 
-    // Reload task list
-    loadTaskList();
-
-    // Show success message
-    alert('Translado iniciado com sucesso!');
-  }
+      // Mostrar mensagem de sucesso
+      alert('Translado iniciado com sucesso!');
+    } else {
+      alert('Erro ao iniciar translado: ' + (result.message || 'Erro desconhecido'));
+    }
+  })
+  .catch(error => {
+    console.error('Erro ao iniciar translado:', error);
+    alert('Erro ao iniciar translado. Tente novamente.');
+  });
 }
 
 // End transit function
@@ -857,31 +879,54 @@ function endTransit() {
     return;
   }
 
-  // Ensure the task is in the correct status
+  // Verificar status correto da tarefa
   if (currentTask.status !== 'em_translado') {
     alert('A tarefa não está no status de "em translado".');
     return;
   }
 
-  // Update task in data service
-  const updatedTask = window.dataService.endTransit(currentTask.id, currentCoordinates);
+  
+  // Dados para enviar à API
+  const updateData = {
+    taskId: currentTask.id,
+    newStatus: 'aguardando_inicio',
+    coordinates: currentCoordinates,
+    endTime: new Date().toISOString() // Registrar horário de chegada
+  };
+  
+  // Enviar atualização para o servidor
+  fetch("https://localhost/EBEN/api/updateTaskStatus.php", {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(updateData)
+  })
+  .then(response => response.json())
+  .then(result => {
+    if (result.success) {
+      // Atualizar localmente a tarefa atual
+      currentTask.status = 'aguardando_inicio';
+      currentTask.coordenadas = currentCoordinates;
+      
+      // Fechar modal
+      const modal = bootstrap.Modal.getInstance(document.getElementById('taskDetailModal'));
+      if (modal) modal.hide();
 
-  if (updatedTask) {
-    // Close modal
-    const modal = bootstrap.Modal.getInstance(document.getElementById('taskDetailModal'));
-    if (modal) modal.hide();
+      // Atualizar lista de tarefas
+      loadTaskList();
 
-    // Update current task
-    currentTask = updatedTask;
-
-    // Reload task list
-    loadTaskList();
-
-    // Show success message
-    alert('Translado encerrado com sucesso!');
-  } else {
+      // Mostrar mensagem de sucesso
+      alert('Translado encerrado com sucesso!');
+    } else {
+      alert('Erro ao encerrar translado: ' + (result.message || 'Erro desconhecido'));
+    }
+  })
+  .catch(error => {
+    console.error('Erro ao encerrar translado:', error);
     alert('Erro ao encerrar translado. Tente novamente.');
-  }
+  });
+  
 }
 
 // Start task function

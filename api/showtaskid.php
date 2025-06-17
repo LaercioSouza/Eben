@@ -26,7 +26,25 @@ if (!isset($data['id'])) {
     exit;
 }
 
-$sql = "SELECT * FROM task where id = :id";
+$sql = "SELECT 
+    e.nome AS empresa,
+    c.nome AS colaborador,
+    t.id,
+    t.data_tarefa,
+    t.hora_tarefa,
+    t.status,
+    t.tempo_sugerido,
+    t.responsavel,
+    t.descricao,
+    t.formulario_id
+ FROM 
+    task t
+ JOIN 
+    companies e ON t.empresa_id = e.id
+ JOIN 
+    employees c ON t.colaborador_id = c.id
+ WHERE
+    t.id = :id";
 $stmt = $pdo->prepare($sql);
 $stmt->execute([':id' => $data['id']]);
 $result = $stmt->fetch(PDO::FETCH_ASSOC);
