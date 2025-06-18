@@ -817,6 +817,20 @@ function showTaskDetails(taskId) {
 }
 
 // Start transit function
+function getLocalISOString() {
+  const now = new Date();
+  const tzo = -now.getTimezoneOffset();
+  const pad = (num) => (num < 10 ? '0' : '') + num;
+  
+  return now.getFullYear() + '-' +
+    pad(now.getMonth() + 1) + '-' +
+    pad(now.getDate()) + ' ' +
+    pad(now.getHours()) + ':' +
+    pad(now.getMinutes()) + ':' +
+    pad(now.getSeconds());
+}
+
+// Função startTransit atualizada
 function startTransit() {
   if (!currentTask) return;
 
@@ -825,12 +839,13 @@ function startTransit() {
     return;
   }
 
-  // Dados para enviar à API
+  // Usar função para obter data/hora local correta
+  const startTime = getLocalISOString();
+
   const updateData = {
     taskId: currentTask.id,
     newStatus: 'em_translado',
-    //coordinates: currentCoordinates,
-    startTime: new Date().toISOString() // Registrar o horário de início
+    startTime: startTime
   };
 
   // Enviar atualização para o servidor
@@ -846,7 +861,6 @@ function startTransit() {
     if (result.success) {
       // Atualizar localmente a tarefa atual
       currentTask.status = 'em_translado';
-      currentTask.coordenadas = currentCoordinates; // Atualizar coordenadas se necessário
       
       // Fechar modal
       const modal = bootstrap.Modal.getInstance(document.getElementById('taskDetailModal'));
@@ -855,7 +869,6 @@ function startTransit() {
       // Atualizar lista de tarefas
       loadTaskList();
 
-      // Mostrar mensagem de sucesso
       alert('Translado iniciado com sucesso!');
     } else {
       alert('Erro ao iniciar translado: ' + (result.message || 'Erro desconhecido'));
@@ -867,7 +880,7 @@ function startTransit() {
   });
 }
 
-// End transit function
+// Função endTransit atualizada
 function endTransit() {
   if (!currentTask) {
     alert('Nenhuma tarefa ativa encontrada.');
@@ -879,19 +892,19 @@ function endTransit() {
     return;
   }
 
-  // Verificar status correto da tarefa
   if (currentTask.status !== 'em_translado') {
     alert('A tarefa não está no status de "em translado".');
     return;
   }
 
-  
-  // Dados para enviar à API
+  // Usar função para obter data/hora local correta
+  const endTime = getLocalISOString();
+
   const updateData = {
     taskId: currentTask.id,
     newStatus: 'aguardando_inicio',
     coordinates: currentCoordinates,
-    endTime: new Date().toISOString() // Registrar horário de chegada
+    endTime: endTime
   };
   
   // Enviar atualização para o servidor
@@ -907,7 +920,6 @@ function endTransit() {
     if (result.success) {
       // Atualizar localmente a tarefa atual
       currentTask.status = 'aguardando_inicio';
-      currentTask.coordenadas = currentCoordinates;
       
       // Fechar modal
       const modal = bootstrap.Modal.getInstance(document.getElementById('taskDetailModal'));
@@ -916,7 +928,6 @@ function endTransit() {
       // Atualizar lista de tarefas
       loadTaskList();
 
-      // Mostrar mensagem de sucesso
       alert('Translado encerrado com sucesso!');
     } else {
       alert('Erro ao encerrar translado: ' + (result.message || 'Erro desconhecido'));
@@ -926,7 +937,6 @@ function endTransit() {
     console.error('Erro ao encerrar translado:', error);
     alert('Erro ao encerrar translado. Tente novamente.');
   });
-  
 }
 
 // Start task function
