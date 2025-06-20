@@ -941,99 +941,190 @@ function endTransit() {
 
 // Start task function
 function startTask() {
-  if (!currentTask) return;
+  if (!currentTask) {
+    alert('Nenhuma tarefa ativa encontrada.');
+    return;
+  }
 
   if (!currentCoordinates) {
     alert('Não foi possível obter sua localização atual. Por favor, verifique as permissões de localização.');
     return;
   }
 
-  // Update task in data service
-  const updatedTask = window.dataService.startTask(currentTask.id, currentCoordinates);
-
-  if (updatedTask) {
-    // Close modal
-    const modal = bootstrap.Modal.getInstance(document.getElementById('taskDetailModal'));
-    modal.hide();
-
-    // Update current task
-    currentTask = updatedTask;
-
-    // Reload task list
-    loadTaskList();
-
-    // Show success message
-    alert('Atendimento iniciado com sucesso!');
+  // Verificar se a tarefa está no status correto
+  if (currentTask.status !== 'aguardando_inicio') {
+    alert('A tarefa não está no status de "aguardando início".');
+    return;
   }
+
+  // Usar função para obter data/hora local correta
+  const startTime = getLocalISOString();
+
+  // Dados para enviar à API
+  const updateData = {
+    taskId: currentTask.id,
+    newStatus: 'em_andamento',
+    startTime: startTime,
+    startLocation: currentCoordinates
+  };
+
+  // Enviar atualização para o servidor
+  fetch("https://localhost/EBEN/api/updateTaskStatus.php", {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(updateData)
+  })
+  .then(response => response.json())
+  .then(result => {
+    if (result.success) {
+      // Atualizar localmente a tarefa atual
+      currentTask.status = 'em_andamento';
+      
+      // Fechar modal
+      const modal = bootstrap.Modal.getInstance(document.getElementById('taskDetailModal'));
+      if (modal) modal.hide();
+
+      // Atualizar lista de tarefas
+      loadTaskList();
+
+      // Mostrar mensagem de sucesso
+      alert('Atendimento iniciado com sucesso!');
+    } else {
+      alert('Erro ao iniciar atendimento: ' + (result.message || 'Erro desconhecido'));
+    }
+  })
+  .catch(error => {
+    console.error('Erro ao iniciar atendimento:', error);
+    alert('Erro ao iniciar atendimento. Tente novamente.');
+  });
 }
 
 // Pause task function
 function pauseTask() {
-  if (!currentTask) return;
+    if (!currentTask) {
+    alert('Nenhuma tarefa ativa encontrada.');
+    return;
+  }
 
   if (!currentCoordinates) {
     alert('Não foi possível obter sua localização atual. Por favor, verifique as permissões de localização.');
     return;
   }
 
-  // Prompt for pause reason
+  // Solicitar motivo da pausa
   const reason = prompt('Por favor, informe o motivo da pausa:');
-
+  
   if (reason === null) {
-    // User canceled
-    return;
+    return; // Usuário cancelou
   }
 
-  // Update task in data service
-  const updatedTask = window.dataService.pauseTask(currentTask.id, currentCoordinates, reason);
+  // Obter data/hora local para o início da pausa
+  const startedAt = getLocalISOString();
 
-  if (updatedTask) {
-    // Close modal
-    const modal = bootstrap.Modal.getInstance(document.getElementById('taskDetailModal'));
-    modal.hide();
+  // Dados para enviar à API
+  const pauseData = {
+    taskId: currentTask.id,
+    startedAt: startedAt,
+    location: currentCoordinates,
+    reason: reason
+  };
 
-    // Update current task
-    currentTask = updatedTask;
+  // Enviar requisição para iniciar a pausa
+  fetch("https://localhost/EBEN/api/pauseTask.php", {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(pauseData)
+  })
+  .then(response => response.json())
+  .then(result => {
+    if (result.success) {
+      // Atualizar localmente a tarefa atual
+      currentTask.status = 'pausada';
+      
+      // Fechar modal
+      const modal = bootstrap.Modal.getInstance(document.getElementById('taskDetailModal'));
+      if (modal) modal.hide();
 
-    // Reload task list
-    loadTaskList();
+      // Atualizar lista de tarefas
+      loadTaskList();
+  
 
-    // Show success message
-    alert('Atendimento pausado com sucesso!');
-  }
+      alert('Atendimento pausado com sucesso!');
+    } else {
+      alert('Erro ao pausar atendimento: ' + (result.message || 'Erro desconhecido'));
+    }
+  })
+  .catch(error => {
+    console.error('Erro ao pausar atendimento:', error);
+    alert('Erro ao pausar atendimento. Tente novamente.');
+  });
 }
 
 // Resume task function
 function resumeTask() {
-  if (!currentTask) return;
+    if (!currentTask) {
+    alert('Nenhuma tarefa ativa encontrada.');
+    return;
+  }
 
   if (!currentCoordinates) {
     alert('Não foi possível obter sua localização atual. Por favor, verifique as permissões de localização.');
     return;
   }
 
-  // Update task in data service
-  const updatedTask = window.dataService.resumeTask(currentTask.id, currentCoordinates);
+  // Obter data/hora local para o término da pausa
+  const endedAt = getLocalISOString();
 
-  if (updatedTask) {
-    // Close modal
-    const modal = bootstrap.Modal.getInstance(document.getElementById('taskDetailModal'));
-    modal.hide();
+  // Dados para enviar à API
+  const resumeData = {
+    taskId: currentTask.id,
+    endedAt: endedAt
+  };
 
-    // Update current task
-    currentTask = updatedTask;
+  // Enviar requisição para terminar a pausa
+  fetch("https://localhost/EBEN/api/resumeTask.php", {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(resumeData)
+  })
+  .then(response => response.json())
+  .then(result => {
+    if (result.success) {
+      // Atualizar localmente a tarefa atual
+      currentTask.status = 'em_andamento';
+      
+      // Fechar modal
+      const modal = bootstrap.Modal.getInstance(document.getElementById('taskDetailModal'));
+      if (modal) modal.hide();
 
-    // Reload task list
-    loadTaskList();
+  
 
-    // Show success message
-    alert('Atendimento retomado com sucesso!');
-  }
+      // Atualizar lista de tarefas
+      loadTaskList();
+
+      alert('Atendimento retomado com sucesso!');
+    } else {
+      alert('Erro ao retomar atendimento: ' + (result.message || 'Erro desconhecido'));
+    }
+  })
+  .catch(error => {
+    console.error('Erro ao retomar atendimento:', error);
+    alert('Erro ao retomar atendimento. Tente novamente.');
+  });
 }
 
 // Complete task function (agora chama o formulário)
 function completeTask() {
-  if (!currentTask) return;
+  if (!currentTask) {
+    alert('Nenhuma tarefa ativa encontrada.');
+    return;
+  }
 
   if (!currentCoordinates) {
     alert('Não foi possível obter sua localização atual. Por favor, verifique as permissões de localização.');
@@ -1045,38 +1136,60 @@ function completeTask() {
     return;
   }
 
-  // Prompt para observações
-  const observations = prompt('Observações sobre o atendimento (opcional):');
+  // Solicitar observações
+  const observations = prompt('Observações sobre o atendimento (opcional):') || '';
 
-  // Se existir handler de formulário, aciona-o primeiro
+  // Obter data/hora local para o término do atendimento
+  const completedAt = getLocalISOString();
+
+  // Dados para enviar à API
+  const updateData = {
+    taskId: currentTask.id,
+    newStatus: 'aguardando_retorno', // Status alterado para "aguardando_retorno"
+    completedAt: completedAt,
+    observations: observations,
+    completionObservations: observations
+  };
+
+  // Enviar atualização para o servidor
+  fetch("https://localhost/EBEN/api/updateTaskStatus.php", {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(updateData)
+  })
+  .then(response => response.json())
+  .then(result => {
+    if (result.success) {
+      // Atualizar localmente a tarefa atual
+      currentTask.status = 'aguardando_retorno';
+      
+      // Fechar modal
+      const modal = bootstrap.Modal.getInstance(document.getElementById('taskDetailModal'));
+      if (modal) modal.hide();
+
+      // Atualizar lista de tarefas
+      loadTaskList();
+      console.log(currentTask);
+
+      alert('Atendimento concluído com sucesso!');
+    } else {
+      alert('Erro ao concluir atendimento: ' + (result.message || 'Erro desconhecido'));
+    }
+  })
+  .catch(error => {
+    console.error('Erro ao concluir atendimento:', error);
+    alert('Erro ao concluir atendimento. Tente novamente.');
+  });
+  
+  /* Por enquanto não faremos isso, se trata das respostas dos formulários.
   if (window.taskFormHandler && typeof window.taskFormHandler.completeTaskWithForm === 'function') {
     window.taskFormHandler.completeTaskWithForm(currentTask.id);
   }
+  */
 
-  // Atualiza a tarefa no dataService
-  const updatedTask = window.dataService.completeTask(
-    currentTask.id,
-    currentCoordinates,
-    observations
-  );
-
-  if (updatedTask) {
-    // Fecha o modal
-    const modalEl = document.getElementById('taskDetailModal');
-    const modal = bootstrap.Modal.getInstance(modalEl);
-    if (modal) {
-      modal.hide();
-    }
-
-    // Atualiza currentTask e recarrega a lista
-    currentTask = updatedTask;
-    loadTaskList();
-
-    // Mensagem de sucesso
-    alert('Atendimento concluído com sucesso!');
-  } else {
-    console.error('Falha ao concluir a tarefa via dataService.');
-  }
+  
 }
 
 // Start return transit function

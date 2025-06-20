@@ -12,17 +12,16 @@ $user = 'root';
 $pass = '';
 $data = json_decode(file_get_contents('php://input'), true);
 
-// Definir fuso horário do servidor
 date_default_timezone_set('America/Sao_Paulo');
 
 try {
     $pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8", $user, $pass);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    
-    // Definir fuso horário do banco de dados
-    $pdo->exec("SET time_zone = '-03:00'"); // Fuso horário de Brasília
+    $pdo->exec("SET time_zone = '-03:00'");
 
-    // Preparar query baseada no tipo de atualização
+    // Iniciar transação
+    $pdo->beginTransaction();
+
     if ($data['newStatus'] === 'em_translado') {
         $stmt = $pdo->prepare("UPDATE task SET 
                                 status = :status,
@@ -73,10 +72,83 @@ try {
             ':taskId' => $data['taskId']
         ]);
     }
+    elseif ($data['newStatus'] === 'em_andamento') {
+        $stmt = $pdo->prepare("UPDATE task SET 
+                                status = :status,
+                                taskStartedAt = :taskStartedAt,
+                                startLocation = :startLocation
+                              WHERE id = :taskId");
+        
+        $stmt->execute([
+            ':status' => $data['newStatus'],
+            ':taskStartedAt' => $data['startTime'],
+            ':startLocation' => $data['startLocation'],
+            ':taskId' => $data['taskId']
+        ]);
+    }
+    elseif ($data['newStatus'] === 'aguardando_retorno') {
+        $taskId = $data['taskId'];
 
+        // 1. Buscar informações da tarefa
+        $stmt = $pdo->prepare("SELECT taskStartedAt FROM task WHERE id = :taskId");
+        $stmt->execute([':taskId' => $taskId]);
+        $task = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$task || !$task['taskStartedAt']) {
+            throw new Exception('Tarefa não encontrada ou não iniciada.');
+        }
+
+        // 2. Calcular tempo total de pausas
+        $stmt = $pdo->prepare("SELECT SUM(TIME_TO_SEC(duration)) AS total_pause_seconds 
+                                FROM task_pauses 
+                               WHERE task_id = :taskId");
+        $stmt->execute([':taskId' => $taskId]);
+        $pauseResult = $stmt->fetch(PDO::FETCH_ASSOC);
+        $totalPauseSeconds = $pauseResult['total_pause_seconds'] ?? 0;
+
+        // Converter para formato TIME (HH:MM:SS)
+        $pauseTime = gmdate('H:i:s', $totalPauseSeconds);
+
+        // 3. Calcular workTime (tempo líquido de trabalho)
+        $startTime = new DateTime($task['taskStartedAt']);
+        $endTime = new DateTime($data['completedAt']);
+        $totalSeconds = $endTime->getTimestamp() - $startTime->getTimestamp();
+        $workSeconds = $totalSeconds - $totalPauseSeconds;
+
+        // Garantir que não seja negativo
+        if ($workSeconds < 0) {
+            $workSeconds = 0;
+        }
+
+        $workTime = gmdate('H:i:s', $workSeconds);
+
+        // 4. Atualizar a tarefa
+        $stmt = $pdo->prepare("UPDATE task SET 
+                                status = :status,
+                                completedAt = :completedAt,
+                                observations = :observations,
+                                completionObservations = :completionObservations,
+                                workTime = :workTime,
+                                pauseTime = :pauseTime
+                               WHERE id = :taskId");
+        
+        $stmt->execute([
+            ':status' => 'aguardando_retorno',
+            ':completedAt' => $data['completedAt'],
+            ':observations' => $data['observations'],
+            ':completionObservations' => $data['completionObservations'],
+            ':workTime' => $workTime,
+            ':pauseTime' => $pauseTime,
+            ':taskId' => $taskId
+        ]);
+    }
+
+    // Confirmar transação
+    $pdo->commit();
     echo json_encode(['success' => true, 'message' => 'Status atualizado']);
 
-} catch (PDOException $e) {
-    echo json_encode(['success' => false, 'message' => 'Erro no servidor: ' . $e->getMessage()]);
+} catch (Exception $e) {
+    $pdo->rollBack();
+    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
 }
 ?>
