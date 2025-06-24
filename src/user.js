@@ -687,9 +687,44 @@ function showTaskDetails(taskId) {
 
       // Add report information if available
       // NOTA: Se sua API retorna relatório, adicione aqui
-      if (task.report) {
-        // ... código para exibir relatório ...
-      }
+      // Nova seção de relatório
+let reportHtml = '';
+
+// Verificar se temos dados de relatório para exibir
+if (task.transitTime || task.workTime || task.pauseTime || task.returnTransitTime || task.observations || task.completionObservations || task.finalObservations) {
+  reportHtml = '<h6>Relatório de Atividade:</h6><div class="border p-2 bg-light mb-3">';
+
+  if (task.transitTime) {
+    reportHtml += `<p><small><strong>Tempo de Translado (Ida):</strong> ${task.transitTime}</small></p>`;
+  }
+
+  if (task.workTime) {
+    reportHtml += `<p><small><strong>Tempo de Trabalho:</strong> ${task.workTime}</small></p>`;
+  }
+
+  if (task.pauseTime) {
+    reportHtml += `<p><small><strong>Tempo em Pausa:</strong> ${task.pauseTime}</small></p>`;
+  }
+
+  if (task.returnTransitTime) {
+    reportHtml += `<p><small><strong>Tempo de Translado (Volta):</strong> ${task.returnTransitTime}</small></p>`;
+  }
+
+  if (task.observations) {
+    reportHtml += `<p><small><strong>Observações:</strong> ${task.observations}</small></p>`;
+  }
+
+  if (task.completionObservations) {
+    reportHtml += `<p><small><strong>Observações de Conclusão:</strong> ${task.completionObservations}</small></p>`;
+  }
+
+  if (task.finalObservations) {
+    reportHtml += `<p><small><strong>Observações Finais:</strong> ${task.finalObservations}</small></p>`;
+  }
+
+  reportHtml += '</div>';
+  detailContent.innerHTML += reportHtml;
+}
 
       // Clear existing buttons
       modalFooter.innerHTML = '<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>';
@@ -1194,30 +1229,63 @@ function completeTask() {
 
 // Start return transit function
 function startReturnTransit() {
-  if (!currentTask) return;
+  if (!currentTask) {
+    alert('Nenhuma tarefa ativa encontrada.');
+    return;
+  }
 
   if (!currentCoordinates) {
     alert('Não foi possível obter sua localização atual. Por favor, verifique as permissões de localização.');
     return;
   }
 
-  // Update task in data service
-  const updatedTask = window.dataService.startReturnTransit(currentTask.id, currentCoordinates);
-
-  if (updatedTask) {
-    // Close modal
-    const modal = bootstrap.Modal.getInstance(document.getElementById('taskDetailModal'));
-    modal.hide();
-
-    // Update current task
-    currentTask = updatedTask;
-
-    // Reload task list
-    loadTaskList();
-
-    // Show success message
-    alert('Retorno iniciado com sucesso!');
+  // Verificar status correto (deve estar em "aguardando_retorno")
+  if (currentTask.status !== 'aguardando_retorno') {
+    alert('A tarefa não está no status correto para iniciar o retorno.');
+    return;
   }
+
+  // Obter data/hora local para o início do retorno
+  const startTime = getLocalISOString();
+
+  // Dados para enviar à API
+  const updateData = {
+    taskId: currentTask.id,
+    newStatus: 'retornando',
+    startTime: startTime,
+    returnStartLocation: currentCoordinates
+  };
+
+  // Enviar atualização para o servidor
+  fetch("https://localhost/EBEN/api/updateTaskStatus.php", {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(updateData)
+  })
+  .then(response => response.json())
+  .then(result => {
+    if (result.success) {
+      // Atualizar localmente a tarefa atual
+      currentTask.status = 'retornando';
+      
+      // Fechar modal
+      const modal = bootstrap.Modal.getInstance(document.getElementById('taskDetailModal'));
+      if (modal) modal.hide();
+
+      // Atualizar lista de tarefas
+      loadTaskList();
+
+      alert('Retorno iniciado com sucesso!');
+    } else {
+      alert('Erro ao iniciar retorno: ' + (result.message || 'Erro desconhecido'));
+    }
+  })
+  .catch(error => {
+    console.error('Erro ao iniciar retorno:', error);
+    alert('Erro ao iniciar retorno. Tente novamente.');
+  });
 }
 
 // End return transit function (atualizado)
@@ -1228,31 +1296,56 @@ function endReturnTransit() {
   }
 
   if (!currentCoordinates) {
-    alert('Não foi possível obter sua localização atual.');
+    alert('Não foi possível obter sua localização atual. Por favor, verifique as permissões de localização.');
     return;
   }
 
-  // Verificação crítica de status
   if (currentTask.status !== 'retornando') {
-    alert('Ação só pode ser executada durante o translado de volta');
+    alert('A tarefa não está no status de "retornando".');
     return;
   }
 
-  // Chamar o método CORRETO do Data Service
-  const updatedTask = window.dataService.endTransit(currentTask.id, currentCoordinates);
+  // Obter data/hora local para o término do retorno
+  const endTime = getLocalISOString();
 
-  if (updatedTask) {
-    // Fechar modal
-    const modal = bootstrap.Modal.getInstance(document.getElementById('taskDetailModal'));
-    if (modal) modal.hide();
+  // Dados para enviar à API
+  const updateData = {
+    taskId: currentTask.id,
+    newStatus: 'finalizado',
+    endTime: endTime,
+    returnEndLocation: currentCoordinates
+  };
 
-    // Atualizar tarefa
-    currentTask = updatedTask;
-    loadTaskList();
-    alert('Translado de volta finalizado com sucesso!');
-  } else {
-    alert('Erro ao finalizar translado de volta');
-  }
+  // Enviar atualização para o servidor
+  fetch("https://localhost/EBEN/api/updateTaskStatus.php", {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(updateData)
+  })
+  .then(response => response.json())
+  .then(result => {
+    if (result.success) {
+      // Atualizar localmente a tarefa atual
+      currentTask.status = 'finalizado';
+      
+      // Fechar modal
+      const modal = bootstrap.Modal.getInstance(document.getElementById('taskDetailModal'));
+      if (modal) modal.hide();
+
+      // Atualizar lista de tarefas
+      loadTaskList();
+
+      alert('Retorno finalizado com sucesso!');
+    } else {
+      alert('Erro ao finalizar retorno: ' + (result.message || 'Erro desconhecido'));
+    }
+  })
+  .catch(error => {
+    console.error('Erro ao finalizar retorno:', error);
+    alert('Erro ao finalizar retorno. Tente novamente.');
+  });
 }
 
 // Finalize task function
@@ -1262,29 +1355,55 @@ function finalizeTask() {
     return;
   }
 
-  // Verificar status correto
   if (currentTask.status !== 'finalizado') {
     alert('Só é possível concluir tarefas finalizadas');
     return;
   }
 
   // Coletar observações finais
-  const observations = prompt('Observações finais (opcional):');
+  const observations = prompt('Observações finais (opcional):') || '';
 
-  // Chamar o método correto do Data Service
-  const updatedTask = window.dataService.finalizeTask(currentTask.id, observations);
+  // Obter data/hora local para a finalização
+  const finalizedAt = getLocalISOString();
 
-  if (updatedTask) {
-    // Fechar modal e atualizar
-    const modal = bootstrap.Modal.getInstance(document.getElementById('taskDetailModal'));
-    if (modal) modal.hide();
+  // Dados para enviar à API
+  const updateData = {
+    taskId: currentTask.id,
+    newStatus: 'concluida',
+    finalizedAt: finalizedAt,
+    finalObservations: observations
+  };
 
-    currentTask = updatedTask;
-    loadTaskList();
-    alert('Tarefa concluída com sucesso!');
-  } else {
-    alert('Erro ao concluir tarefa');
-  }
+  // Enviar atualização para o servidor
+  fetch("https://localhost/EBEN/api/updateTaskStatus.php", {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(updateData)
+  })
+  .then(response => response.json())
+  .then(result => {
+    if (result.success) {
+      // Atualizar localmente a tarefa atual
+      currentTask.status = 'concluida';
+      
+      // Fechar modal
+      const modal = bootstrap.Modal.getInstance(document.getElementById('taskDetailModal'));
+      if (modal) modal.hide();
+
+      // Atualizar lista de tarefas
+      loadTaskList();
+
+      alert('Tarefa concluída com sucesso!');
+    } else {
+      alert('Erro ao concluir tarefa: ' + (result.message || 'Erro desconhecido'));
+    }
+  })
+  .catch(error => {
+    console.error('Erro ao concluir tarefa:', error);
+    alert('Erro ao concluir tarefa. Tente novamente.');
+  });
 }
 
 // Funções para cancelamento de tarefas

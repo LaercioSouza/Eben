@@ -265,10 +265,7 @@ function formatTimeToHHMM(timeStr) {
 }
 
 function showTaskDetail(taskId) {
-  
-  /*
   const payload = { id: taskId };  
- 
   fetch("https://localhost/EBEN/api/showdetailstask.php", {
          method: 'POST',
          headers: {
@@ -286,168 +283,137 @@ function showTaskDetail(taskId) {
     return;
   }
 
-  console.log('Task found:', task);
-  console.log('Task status:', task.status);
-  console.log('Task tempoSugerido:', task.tempo_sugerido);
-  console.log('Task report:', task.report);
-
-  //const employees = window.dataService.getAll(window.dataService.DATA_TYPES.EMPLOYEES);
-  //const employee = employees.find(e => e.id === task.colaboradorId);
 
   let timeComparison = '';
-  let efficiency = null;
-  let actualHours = null;
-  let showPerformanceAnalysis = false;
+    let efficiency = null;
+    let actualHours = null;
+    let showPerformanceAnalysis = false;
 
-  // Check if task is completed and has the necessary data for performance analysis
-  if ((task.status === 'concluida' || task.status === 'aguardando_retorno') &&
-    task.tempoSugerido &&
-    task.report &&
-    task.report.workTime) {
+    // Conversão tempo sugerido de HH:MM:SS para decimal
+    const tempoSugeridoDecimal = HHMMSSToDecimal(task.tempo_sugerido);
 
-    console.log('Task qualifies for performance analysis');
-    console.log('Work time:', task.report.workTime);
+    // Verifica se há dados para análise de performance
+    if ((task.status === 'concluida' || task.status === 'aguardando_retorno') &&
+        task.tempo_sugerido &&
+        task.workTime) {
 
-    // Convert workTime (HH:MM:SS) to decimal hours
-    actualHours = HHMMSSToDecimal(task.report.workTime);
-    console.log('Actual hours (decimal):', actualHours);
+      actualHours = HHMMSSToDecimal(task.workTime);
 
-    if (actualHours > 0) {
-      efficiency = Math.round((task.tempoSugerido / actualHours) * 100);
-      console.log('Calculated efficiency:', efficiency);
+      if (actualHours > 0) {
+        efficiency = Math.round((tempoSugeridoDecimal / actualHours) * 100);
+        const difference = actualHours - tempoSugeridoDecimal;
+        const isOverTime = difference > 0;
 
-      const difference = actualHours - task.tempoSugerido;
-      const isOverTime = difference > 0;
+        timeComparison = `
+          <div class="alert ${isOverTime ? 'alert-warning' : 'alert-success'} mt-2">
+            <strong>Análise de Tempo:</strong><br>
+            Tempo Sugerido: ${decimalToHHMM(tempoSugeridoDecimal)}<br>
+            Tempo Executado: ${formatTimeToHHMM(task.workTime)}<br>
+            Eficiência: ${efficiency}%<br>
+            ${isOverTime ? `Excedeu em ${decimalToHHMM(Math.abs(difference))}` : `Concluído ${decimalToHHMM(Math.abs(difference))} antes do previsto`}
+          </div>
+        `;
+        showPerformanceAnalysis = true;
+      }
+    }
 
-      // Format times for display
-      const suggestedTimeHHMM = decimalToHHMM(task.tempoSugerido);
-      const actualTimeHHMM = formatTimeToHHMM(task.report.workTime);
-      const diffTimeHHMM = decimalToHHMM(Math.abs(difference));
-
-      timeComparison = `
-        <div class="alert ${isOverTime ? 'alert-warning' : 'alert-success'} mt-2">
-          <strong>Análise de Tempo:</strong><br>
-          Tempo Sugerido: ${suggestedTimeHHMM}<br>
-          Tempo Executado: ${actualTimeHHMM}<br>
-          Eficiência: ${efficiency}%<br>
-          ${isOverTime ? `Excedeu em ${diffTimeHHMM}` : `Concluído ${diffTimeHHMM} antes do previsto`}
+    // Cancelamento, se houver
+    let cancellationInfo = '';
+    if (task.status === 'cancelada' && task.cancellation) {
+      const cancelDate = new Date(task.cancellation.timestamp);
+      const formattedDate = cancelDate.toLocaleDateString('pt-BR');
+      const formattedTime = cancelDate.toLocaleTimeString('pt-BR');
+      cancellationInfo = `
+        <div class="alert alert-danger mt-3">
+          <h6>Cancelamento da Tarefa</h6>
+          <p><strong>Data/Hora:</strong> ${formattedDate} às ${formattedTime}</p>
+          <p><strong>Motivo:</strong> ${task.cancellation.reason}</p>
+          <p><strong>Localização:</strong> ${task.cancellation.coordinates || 'N/A'}</p>
+          ${task.cancellation.photo ? `
+            <div class="mt-2">
+              <strong>Foto do Local:</strong>
+              <img src="${task.cancellation.photo}" class="img-fluid rounded mt-2" alt="Foto do local">
+            </div>` : ''}
         </div>
       `;
-
-      showPerformanceAnalysis = true;
-      console.log('Performance analysis will be shown. Efficiency:', efficiency);
     }
-  } else {
-    console.log('Task does not qualify for performance analysis');
-    console.log('Status check:', task.status === 'concluida' || task.status === 'aguardando_retorno');
-    console.log('Tempo sugerido check:', !!task.tempoSugerido);
-    console.log('Report check:', !!task.report);
-    console.log('Work time check:', task.report ? !!task.report.workTime : false);
-  }
 
-  // Adicionar seção de cancelamento se aplicável
-  let cancellationInfo = '';
-  if (task.status === 'cancelada' && task.cancellation) {
-    const cancelDate = new Date(task.cancellation.timestamp);
-    const formattedDate = cancelDate.toLocaleDateString('pt-BR');
-    const formattedTime = cancelDate.toLocaleTimeString('pt-BR');
-
-    cancellationInfo = `
-      <div class="alert alert-danger mt-3">
-        <h6>Cancelamento da Tarefa</h6>
-        <p><strong>Data/Hora:</strong> ${formattedDate} às ${formattedTime}</p>
-        <p><strong>Motivo:</strong> ${task.cancellation.reason}</p>
-        <p><strong>Localização:</strong> ${task.cancellation.coordinates || 'N/A'}</p>
-        
-        ${task.cancellation.photo ? `
-          <div class="mt-2">
-            <strong>Foto do Local:</strong>
-            <img src="${task.cancellation.photo}" class="img-fluid rounded mt-2" alt="Foto do local">
-          </div>
-        ` : ''}
+    const content = `
+      <div class="mb-3">
+        <h6>Informações Básicas</h6>
+        <p><strong>Empresa:</strong> ${task.empresa}</p>
+        <p><strong>Técnico:</strong> ${task.colaborador}</p>
+        ${task.responsavel ? `<p><strong>Responsável no Local:</strong> ${task.responsavel}</p>` : ''}
+        <p><strong>Data:</strong> ${task.data_tarefa}</p>
+        <p><strong>Hora:</strong> ${task.hora_tarefa}</p>
+        ${task.tempo_sugerido ? `<p><strong>Tempo Sugerido:</strong> ${decimalToHHMM(tempoSugeridoDecimal)}</p>` : ''}
+        <p><strong>Status:</strong> <span class="status-badge status-${getStatusClass(task.status)}">${getStatusText(task.status)}</span></p>
+        <p><strong>Descrição:</strong> ${task.descricao}</p>
+        ${task.formulario_nome ? `<p><strong>Formulário:</strong> ${task.formulario_nome}</p>` : ''}
+        ${timeComparison}
       </div>
+      
+      ${cancellationInfo}
+
+      ${showPerformanceAnalysis ? `
+        <div class="mb-4" id="performance-analysis-section">
+          <h6>Análise de Performance</h6>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="chart-container" style="height: 200px;">
+                <canvas id="efficiencyChart" width="300" height="150"></canvas>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="chart-container" style="height: 200px;">
+                <canvas id="timeChart" width="300" height="150"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      ` : ''}
     `;
-  }
 
-  const content = `
-    <div class="mb-3">
-      <h6>Informações Básicas</h6>
-      <p><strong>Empresa:</strong> ${task.empresa}</p>
-      <p><strong>Técnico:</strong> ${task ? task.colaborador : 'N/A'}</p>
-      ${task.responsavel ? `<p><strong>Responsável no Local:</strong> ${task.responsavel}</p>` : ''}
-      <p><strong>Data:</strong> ${task.data}</p>
-      <p><strong>Hora:</strong> ${task.hora}</p>
-      ${task.tempo_sugerido ? `<p><strong>Tempo Sugerido:</strong> ${decimalToHHMM(task.tempoSugerido)}</p>` : ''}
-      <p><strong>Status:</strong> <span class="status-badge status-${getStatusClass(task.status)}">${getStatusText(task.status)}</span></p>
-      <p><strong>Descrição:</strong> ${task.descricao}</p>
-      ${task.formulario_id ? `<p><strong>Formulário:</strong> ${task.formulario_id}</p>` : ''}
-      ${timeComparison}
-    </div>
-    
-    ${cancellationInfo}
-    
-    ${showPerformanceAnalysis ? `
-    <div class="mb-4" id="performance-analysis-section">
-      <h6>Análise de Performance</h6>
-      <div class="row">
-        <div class="col-md-6">
-          <div class="chart-container" style="height: 200px;">
-            <canvas id="efficiencyChart" width="300" height="150"></canvas>
-          </div>
-        </div>
-        <div class="col-md-6">
-          <div class="chart-container" style="height: 200px;">
-            <canvas id="timeChart" width="300" height="150"></canvas>
-          </div>
-        </div>
-      </div>
-    </div>
-    ` : ''}
-  `;
+    document.getElementById('task-detail-content').innerHTML = content;
 
-  document.getElementById('task-detail-content').innerHTML = content;
+    loadTaskHistory(task);
+    showFormResponses(task);
+    initDetailMap(task.coordenadas);
 
-  // Load other components
-  loadTaskHistory(task);
-  showFormResponses(task);
-  initDetailMap(task.coordinates);
+    const modal = new bootstrap.Modal(document.getElementById('taskDetailModal'));
+    modal.show();
 
-  // Show the modal
-  const modal = new bootstrap.Modal(document.getElementById('taskDetailModal'));
-  modal.show();
+    document.getElementById('btn-delete-task').onclick = () => deleteTask(taskId);
+    document.getElementById('btn-export-individual-pdf').onclick = () => exportIndividualTaskToPDF(taskId);
 
-  // Set up button handlers
-  document.getElementById('btn-delete-task').onclick = () => deleteTask(taskId);
-  document.getElementById('btn-export-individual-pdf').onclick = () => exportIndividualTaskToPDF(taskId);
+    modal._element.addEventListener('shown.bs.modal', function () {
+      setupCollapsibleHistory();
+      if (showPerformanceAnalysis && efficiency !== null && actualHours !== null) {
+        setTimeout(() => {
+          if (typeof Chart !== 'undefined') {
+            console.log('DOM check - efficiencyChart:', document.getElementById('efficiencyChart'));
+            console.log('DOM check - timeChart:', document.getElementById('timeChart'));
 
-  // Set up collapsible history and charts after modal is shown
-  modal._element.addEventListener('shown.bs.modal', function () {
-    console.log('Modal shown, setting up components');
-    setupCollapsibleHistory();
+            initPerformanceCharts(task, efficiency, actualHours);
+          }
+        }, 1000);
+      }
+    }, { once: true });
 
-    // Initialize performance charts if needed
-    if (showPerformanceAnalysis && efficiency !== null && actualHours !== null) {
-      console.log('Initializing performance charts with data:', { efficiency, actualHours, tempoSugerido: task.tempoSugerido });
 
-      // Wait for Chart.js to be available and modal to be fully rendered
-      setTimeout(() => {
-        if (typeof Chart !== 'undefined') {
-          initPerformanceCharts(task, efficiency, actualHours);
-        } else {
-          console.error('Chart.js not loaded');
-        }
-      }, 800);
-    }
-  }, { once: true });
+ 
+
   }).catch(error => {
     console.error('Erro na consulta:', error);
 });
 
-*/
+
   
 }
 
 function initPerformanceCharts(task, efficiency, actualHours) {
+ 
+
   console.log('Starting chart initialization with data:', { efficiency, actualHours, tempoSugerido: task.tempoSugerido });
 
   // Initialize efficiency chart

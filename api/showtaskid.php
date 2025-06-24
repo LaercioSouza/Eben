@@ -36,7 +36,14 @@ $sql = "SELECT
     t.tempo_sugerido,
     t.responsavel,
     t.descricao,
-    t.formulario_id
+    t.formulario_id,
+    t.transitTime,
+    t.workTime, 
+    t.pauseTime, 
+    t.returnTransitTime, 
+    t.observations, 
+    t.completionObservations, 
+    t.finalObservations
  FROM 
     task t
  JOIN 

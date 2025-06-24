@@ -143,6 +143,99 @@ try {
         ]);
     }
 
+    elseif ($data['newStatus'] === 'retornando') {
+    $stmt = $pdo->prepare("UPDATE task SET 
+                            status = :status,
+                            returnStartedAt = :returnStartedAt,
+                            returnStartLocation = :returnStartLocation
+                           WHERE id = :taskId");
+    
+    $stmt->execute([
+        ':status' => 'retornando',
+        ':returnStartedAt' => $data['startTime'],
+        ':returnStartLocation' => $data['returnStartLocation'],
+        ':taskId' => $data['taskId']
+    ]);
+}
+    elseif ($data['newStatus'] === 'finalizado') {
+    $taskId = $data['taskId'];
+    $endTimeStr = $data['endTime'];
+
+    // Buscar returnStartedAt da tarefa no banco
+    $stmt = $pdo->prepare("SELECT returnStartedAt FROM task WHERE id = :taskId");
+    $stmt->execute([':taskId' => $taskId]);
+    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$result || !$result['returnStartedAt']) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Horário de início do retorno não encontrado.']);
+        exit;
+    }
+
+    // Converter datas para objetos DateTime com fuso horário local
+    $startTime = new DateTime($result['returnStartedAt'], new DateTimeZone('America/Sao_Paulo'));
+    $endTime = new DateTime($endTimeStr, new DateTimeZone('America/Sao_Paulo'));
+
+    // Calcular diferença
+    $interval = $startTime->diff($endTime);
+    $returnTransitTime = $interval->format('%H:%I:%S');
+
+    // Atualizar a tarefa
+    $stmt = $pdo->prepare("UPDATE task SET 
+                            status = :status,
+                            returnEndLocation = :returnEndLocation,
+                            returnTransitTime = :returnTransitTime
+                           WHERE id = :taskId");
+    
+    $stmt->execute([
+        ':status' => 'finalizado',
+        ':returnEndLocation' => $data['returnEndLocation'],
+        ':returnTransitTime' => $returnTransitTime,
+        ':taskId' => $taskId
+    ]);
+}
+    elseif ($data['newStatus'] === 'concluida') {
+    $taskId = $data['taskId'];
+
+    // Buscar os tempos da tarefa
+    $stmt = $pdo->prepare("SELECT 
+                            transitStartedAt,
+                            taskStartedAt,
+                            completedAt,
+                            returnStartedAt,
+                            finalizedAt
+                           FROM task 
+                           WHERE id = :taskId");
+    $stmt->execute([':taskId' => $taskId]);
+    $times = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$times) {
+        throw new Exception('Tarefa não encontrada.');
+    }
+
+    // Calcular o tempo total da tarefa (do início do translado até a finalização)
+    $startTime = new DateTime($times['transitStartedAt']);
+    $endTime = new DateTime($data['finalizedAt']);
+    $interval = $startTime->diff($endTime);
+    $totalTime = $interval->format('%H:%I:%S');
+
+    // Atualizar a tarefa
+    $stmt = $pdo->prepare("UPDATE task SET 
+                            status = :status,
+                            finalizedAt = :finalizedAt,
+                            finalObservations = :finalObservations,
+                            totalTime = :totalTime
+                           WHERE id = :taskId");
+    
+    $stmt->execute([
+        ':status' => 'concluida',
+        ':finalizedAt' => $data['finalizedAt'],
+        ':finalObservations' => $data['finalObservations'],
+        ':totalTime' => $totalTime,
+        ':taskId' => $taskId
+    ]);
+}
+
     // Confirmar transação
     $pdo->commit();
     echo json_encode(['success' => true, 'message' => 'Status atualizado']);
