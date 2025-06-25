@@ -304,6 +304,16 @@ function loadForms() {
 
 }
 
+function decimalHoursToHHMMSS(decimal) {
+  const totalSeconds = Math.round(decimal * 3600);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  return `${hours.toString().padStart(2, '0')}:${minutes
+    .toString()
+    .padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+}
+
 // Save task using data service
 function saveTask(e) {
   e.preventDefault();
@@ -329,7 +339,7 @@ function saveTask(e) {
     subsidiaria: subsidiary,
     colaboradorid: colaborador,
     responsavel: responsavel,
-    tempoSugerido: tempoSugerido ? parseFloat(tempoSugerido) : null,
+    tempoSugerido: tempoSugerido ? decimalHoursToHHMMSS(parseFloat(tempoSugerido)) : null,
     data: data,
     hora: hora,
     descricao: descricao,

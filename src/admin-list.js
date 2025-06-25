@@ -253,6 +253,7 @@ function decimalToHHMM(decimalHours) {
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
   return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+
 }
 
 function formatTimeToHHMM(timeStr) {
@@ -262,59 +263,100 @@ function formatTimeToHHMM(timeStr) {
     return `${parts[0].padStart(2, '0')}:${parts[1].padStart(2, '0')}`;
   }
   return timeStr;
+
 }
 
 function showTaskDetail(taskId) {
+  
+  
   const payload = { id: taskId };  
   fetch("https://localhost/EBEN/api/showdetailstask.php", {
-         method: 'POST',
-         headers: {
-        'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-        })
-       .then(response => response.json())
-       .then(data => {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(payload)
+  })
+  .then(response => response.json())
+  .then(taskData => {
+    if (!taskData || taskData.status === 'erro') {
+    
+      return;
+    }
 
-  //const task = window.dataService.getById(window.dataService.DATA_TYPES.TASKS, taskId);
-  const task = data;
-  if (!task) {
-    console.error('Task not found:', taskId);
-    return;
-  }
+    // Transformar os dados da API na estrutura esperada pelo código
+    const task = {
+      id: taskData.id,
+      empresaNome: taskData.empresa,
+      colaborador: taskData.colaborador,
+      data_tarefa: taskData.data_tarefa,
+      hora_tarefa: taskData.hora_tarefa,
+      status: taskData.status,
+      tempo_sugerido: taskData.tempo_sugerido,
+      responsavel: taskData.responsavel,
+      descricao: taskData.descricao,
+      formulario_id: taskData.formulario_id,
+      coordinates: taskData.coordenadas,
+      // Campos de tempo (convertendo para o formato de report)
+      report: {
+        workTime: taskData.workTime,
+        pauseTime: taskData.pauseTime,
+        returnTransitTime: taskData.returnTransitTime,
+        observations: taskData.observations,
+        completionObservations: taskData.completionObservations,
+        finalObservations: taskData.finalObservations
+      },
+      // Campos de cancelamento (se existirem)
+      cancellation: taskData.cancellation_timestamp ? {
+        timestamp: taskData.cancellation_timestamp,
+        reason: taskData.cancellation_reason,
+        coordinates: taskData.cancellation_coordinates,
+        photo: taskData.cancellation_photo
+      } : null
+    };
 
 
-  let timeComparison = '';
+
+    let timeComparison = '';
     let efficiency = null;
     let actualHours = null;
     let showPerformanceAnalysis = false;
 
     // Conversão tempo sugerido de HH:MM:SS para decimal
     const tempoSugeridoDecimal = HHMMSSToDecimal(task.tempo_sugerido);
+    
 
     // Verifica se há dados para análise de performance
     if ((task.status === 'concluida' || task.status === 'aguardando_retorno') &&
         task.tempo_sugerido &&
-        task.workTime) {
+        task.report &&
+        task.report.workTime) {
 
-      actualHours = HHMMSSToDecimal(task.workTime);
+
+
+      actualHours = HHMMSSToDecimal(task.report.workTime);
+     
 
       if (actualHours > 0) {
         efficiency = Math.round((tempoSugeridoDecimal / actualHours) * 100);
+       
+
         const difference = actualHours - tempoSugeridoDecimal;
         const isOverTime = difference > 0;
 
         timeComparison = `
           <div class="alert ${isOverTime ? 'alert-warning' : 'alert-success'} mt-2">
             <strong>Análise de Tempo:</strong><br>
-            Tempo Sugerido: ${decimalToHHMM(tempoSugeridoDecimal)}<br>
-            Tempo Executado: ${formatTimeToHHMM(task.workTime)}<br>
+            Tempo Sugerido: ${(task.tempo_sugerido)}<br>
+            Tempo Executado: ${(task.report.workTime)}<br>
             Eficiência: ${efficiency}%<br>
             ${isOverTime ? `Excedeu em ${decimalToHHMM(Math.abs(difference))}` : `Concluído ${decimalToHHMM(Math.abs(difference))} antes do previsto`}
           </div>
         `;
         showPerformanceAnalysis = true;
       }
+    } else {
+      console.log('Task does not qualify for performance analysis');
     }
 
     // Cancelamento, se houver
@@ -323,6 +365,7 @@ function showTaskDetail(taskId) {
       const cancelDate = new Date(task.cancellation.timestamp);
       const formattedDate = cancelDate.toLocaleDateString('pt-BR');
       const formattedTime = cancelDate.toLocaleTimeString('pt-BR');
+      
       cancellationInfo = `
         <div class="alert alert-danger mt-3">
           <h6>Cancelamento da Tarefa</h6>
@@ -341,7 +384,7 @@ function showTaskDetail(taskId) {
     const content = `
       <div class="mb-3">
         <h6>Informações Básicas</h6>
-        <p><strong>Empresa:</strong> ${task.empresa}</p>
+        <p><strong>Empresa:</strong> ${task.empresaNome}</p>
         <p><strong>Técnico:</strong> ${task.colaborador}</p>
         ${task.responsavel ? `<p><strong>Responsável no Local:</strong> ${task.responsavel}</p>` : ''}
         <p><strong>Data:</strong> ${task.data_tarefa}</p>
@@ -349,7 +392,7 @@ function showTaskDetail(taskId) {
         ${task.tempo_sugerido ? `<p><strong>Tempo Sugerido:</strong> ${decimalToHHMM(tempoSugeridoDecimal)}</p>` : ''}
         <p><strong>Status:</strong> <span class="status-badge status-${getStatusClass(task.status)}">${getStatusText(task.status)}</span></p>
         <p><strong>Descrição:</strong> ${task.descricao}</p>
-        ${task.formulario_nome ? `<p><strong>Formulário:</strong> ${task.formulario_nome}</p>` : ''}
+        ${task.formulario_id ? `<p><strong>Formulário ID:</strong> ${task.formulario_id}</p>` : ''}
         ${timeComparison}
       </div>
       
@@ -376,57 +419,64 @@ function showTaskDetail(taskId) {
 
     document.getElementById('task-detail-content').innerHTML = content;
 
+    // Carregar componentes adicionais
     loadTaskHistory(task);
     showFormResponses(task);
-    initDetailMap(task.coordenadas);
+    initDetailMap(task.coordinates);
 
+    // Mostrar o modal
     const modal = new bootstrap.Modal(document.getElementById('taskDetailModal'));
     modal.show();
 
+    // Configurar handlers de botões
     document.getElementById('btn-delete-task').onclick = () => deleteTask(taskId);
     document.getElementById('btn-export-individual-pdf').onclick = () => exportIndividualTaskToPDF(taskId);
 
+    // Configurar componentes após o modal ser exibido
     modal._element.addEventListener('shown.bs.modal', function () {
+    
       setupCollapsibleHistory();
+
+      // Inicializar gráficos de performance se necessário
       if (showPerformanceAnalysis && efficiency !== null && actualHours !== null) {
+        console.log('Initializing performance charts with data:', { 
+          efficiency, 
+          actualHours, 
+          tempoSugerido: tempoSugeridoDecimal 
+        });
+
+        // Garantir que o DOM esteja pronto
         setTimeout(() => {
           if (typeof Chart !== 'undefined') {
-            console.log('DOM check - efficiencyChart:', document.getElementById('efficiencyChart'));
-            console.log('DOM check - timeChart:', document.getElementById('timeChart'));
-
-            initPerformanceCharts(task, efficiency, actualHours);
+            initPerformanceCharts(task, efficiency, actualHours, tempoSugeridoDecimal);
+          } else {
+            console.error('Chart.js not loaded');
           }
-        }, 1000);
+        }, 100);
       }
     }, { once: true });
 
-
- 
-
   }).catch(error => {
     console.error('Erro na consulta:', error);
-});
-
-
-  
+  });
 }
 
-function initPerformanceCharts(task, efficiency, actualHours) {
- 
+function initPerformanceCharts(task, efficiency, actualHours, tempoSugeridoDecimal) {
+  console.log('Starting chart initialization with data:', { 
+    efficiency, 
+    actualHours, 
+    tempoSugerido: tempoSugeridoDecimal 
+  });
 
-  console.log('Starting chart initialization with data:', { efficiency, actualHours, tempoSugerido: task.tempoSugerido });
-
-  // Initialize efficiency chart
+  // Gráfico de eficiência
   const efficiencyCtx = document.getElementById('efficiencyChart');
-  console.log('Efficiency chart element found:', !!efficiencyCtx);
-
   if (efficiencyCtx) {
-    // Clear any existing chart
-    if (efficiencyCtx.chartInstance) {
-      efficiencyCtx.chartInstance.destroy();
-    }
-
     try {
+      // Limpar gráfico existente
+      if (efficiencyCtx.chartInstance) {
+        efficiencyCtx.chartInstance.destroy();
+      }
+
       const efficiencyValue = Math.min(efficiency, 200);
       const wasteValue = Math.max(0, 100 - efficiencyValue);
 
@@ -464,52 +514,34 @@ function initPerformanceCharts(task, efficiency, actualHours) {
                   size: 11
                 }
               }
-            },
-            tooltip: {
-              callbacks: {
-                label: function (context) {
-                  const label = context.label || '';
-                  const value = context.parsed;
-                  return `${label}: ${value.toFixed(1)}%`;
-                }
-              }
             }
           }
         }
       });
-      console.log('Efficiency chart created successfully');
     } catch (error) {
       console.error('Error creating efficiency chart:', error);
     }
-  } else {
-    console.error('Efficiency chart canvas not found');
   }
 
-  // Initialize time comparison chart
+  // Gráfico de comparação de tempo
   const timeCtx = document.getElementById('timeChart');
-  console.log('Time chart element found:', !!timeCtx);
-
-  if (timeCtx && task.tempoSugerido && actualHours) {
-    // Clear any existing chart
-    if (timeCtx.chartInstance) {
-      timeCtx.chartInstance.destroy();
-    }
-
+  if (timeCtx && tempoSugeridoDecimal && actualHours) {
     try {
+      // Limpar gráfico existente
+      if (timeCtx.chartInstance) {
+        timeCtx.chartInstance.destroy();
+      }
+
       timeCtx.chartInstance = new Chart(timeCtx, {
         type: 'bar',
         data: {
           labels: ['Tempo Sugerido', 'Tempo Real'],
           datasets: [{
             label: 'Horas',
-            data: [task.tempoSugerido, actualHours],
+            data: [tempoSugeridoDecimal, actualHours],
             backgroundColor: [
               '#0d6efd',
-              actualHours <= task.tempoSugerido ? '#198754' : '#dc3545'
-            ],
-            borderColor: [
-              '#0a58ca',
-              actualHours <= task.tempoSugerido ? '#146c43' : '#b02a37'
+              actualHours <= tempoSugeridoDecimal ? '#198754' : '#dc3545'
             ],
             borderWidth: 1
           }]
@@ -552,30 +584,18 @@ function initPerformanceCharts(task, efficiency, actualHours) {
                   return decimalToHHMM(value);
                 }
               }
-            },
-            x: {
-              title: {
-                display: true,
-                text: 'Tipo de Tempo',
-                font: {
-                  weight: 'bold'
-                }
-              }
             }
           }
         }
       });
-      console.log('Time chart created successfully');
     } catch (error) {
       console.error('Error creating time chart:', error);
     }
-  } else {
-    console.error('Time chart canvas not found or missing data');
   }
 }
 
 function setupCollapsibleHistory() {
-  console.log('Setting up collapsible history');
+  
 
   const historyToggle = document.getElementById('historyToggle');
   const historyContent = document.getElementById('historyContent');
@@ -617,16 +637,18 @@ function setupCollapsibleHistory() {
     }
   });
 
-  console.log('Collapsible history setup completed');
+
 }
 
 function loadTaskHistory(task) {
+  
   const historyList = document.getElementById('task-history-list');
 
   if (!task.history || task.history.length === 0) {
     historyList.innerHTML = '<p class="text-muted">Nenhum histórico disponível</p>';
     return;
   }
+
 
   const historyHtml = task.history.map((entry, index) => {
     const date = new Date(entry.timestamp);

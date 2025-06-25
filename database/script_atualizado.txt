@@ -142,13 +142,6 @@ CREATE TABLE IF NOT EXISTS `task` (
   `completionObservations` text DEFAULT NULL,
   `workTime` time DEFAULT NULL,
   `pauseTime` time DEFAULT NULL,
-  `returnStartLocation` varchar(100) DEFAULT NULL,
-  `returnStartedAt` datetime DEFAULT NULL,
-  `returnEndLocation` varchar(100) DEFAULT NULL,
-  `returnTransitTime` time DEFAULT NULL,
-  `finalizedAt` datetime DEFAULT NULL,
-  `finalObservations` text DEFAULT NULL,
-  `totalTime` time DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `empresa_id` (`empresa_id`),
   KEY `colaborador_id` (`colaborador_id`),
@@ -160,11 +153,11 @@ CREATE TABLE IF NOT EXISTS `task` (
 
 -- Copiando dados para a tabela dashboard_db.task: ~4 rows (aproximadamente)
 DELETE FROM `task`;
-INSERT INTO `task` (`id`, `empresa_id`, `colaborador_id`, `responsavel`, `tempo_sugerido`, `data_tarefa`, `hora_tarefa`, `descricao`, `coordenadas`, `formulario_id`, `status`, `criado_em`, `transitStartedAt`, `transitEndLocation`, `transitTime`, `taskStartedAt`, `startLocation`, `completedAt`, `observations`, `completionObservations`, `workTime`, `pauseTime`, `returnStartLocation`, `returnStartedAt`, `returnEndLocation`, `returnTransitTime`, `finalizedAt`, `finalObservations`, `totalTime`) VALUES
-	(1750258162530, 1749471270754, 1749652085931, 'Josué', '00:00:02', '2025-06-18', '12:00:00', 'null', '-41.7734,-2.9055', NULL, 'concluida', '2025-06-18 17:49:22', '2025-06-18 14:49:36', '-41.7668641,-2.9038403', '00:00:05', '2025-06-20 11:58:00', '-41.7506845,-2.9126946', '2025-06-20 11:32:27', 'nenhuma', 'nenhuma', '02:19:38', '00:14:49', '-41.762816,-2.9097984', '2025-06-24 09:14:11', '-41.762816,-2.9097984', '00:21:12', '2025-06-24 09:56:40', 'tudo deu certo', '22:07:04'),
-	(1750258286137, 1749728902107, 1749652085931, 'James', '00:00:02', '2025-06-18', '15:00:00', 'null', '-41.73997385844723,-2.912182190166572', NULL, 'concluida', '2025-06-18 17:51:26', '2025-06-20 13:09:27', '-41.7506845,-2.9126946', '00:00:03', '2025-06-20 13:09:34', '-41.7506845,-2.9126946', '2025-06-20 11:33:04', 'll', 'll', '01:11:02', '00:12:28', '-41.762816,-2.9097984', '2025-06-24 09:57:06', '-41.762816,-2.9097984', '00:00:03', '2025-06-24 09:57:18', '', '23:47:51'),
-	(1750258415566, 1749727759832, 1749471474014, 'Josué', '00:00:02', '2025-06-18', '09:00:00', 'nenhuma', '-41.7734,-2.9055', NULL, 'retornando', '2025-06-18 17:53:35', '2025-06-24 12:15:23', '-41.762816,-2.9097984', '00:00:06', '2025-06-24 12:15:33', '-41.762816,-2.9097984', '2025-06-24 09:15:41', 'dd', 'dd', '00:00:08', '00:00:00', '-41.762816,-2.9097984', '2025-06-24 09:15:49', NULL, NULL, NULL, NULL, NULL),
-	(1750430024014, 1749728902107, 1749652085931, 'Josué', '00:00:02', '2025-06-20', '12:00:00', 'nenhuma', '-41.7734,-2.9055', NULL, 'concluida', '2025-06-20 17:33:44', '2025-06-20 14:33:57', '-41.7506845,-2.9126946', '00:00:11', '2025-06-20 14:34:14', '-41.7506845,-2.9126946', '2025-06-20 11:34:27', 'nenhuma', 'nenhuma', '00:00:13', '00:00:00', '-41.762816,-2.9097984', '2025-06-24 09:57:01', '-41.762816,-2.9097984', '00:00:24', '2025-06-24 09:57:30', '', '22:23:33');
+INSERT INTO `task` (`id`, `empresa_id`, `colaborador_id`, `responsavel`, `tempo_sugerido`, `data_tarefa`, `hora_tarefa`, `descricao`, `coordenadas`, `formulario_id`, `status`, `criado_em`, `transitStartedAt`, `transitEndLocation`, `transitTime`, `taskStartedAt`, `startLocation`, `completedAt`, `observations`, `completionObservations`, `workTime`, `pauseTime`) VALUES
+	(1750258162530, 1749471270754, 1749652085931, 'Josué', '00:00:02', '2025-06-18', '12:00:00', 'null', '-41.7734,-2.9055', NULL, 'aguardando_retorno', '2025-06-18 17:49:22', '2025-06-18 14:49:36', '-41.7668641,-2.9038403', '00:00:05', '2025-06-20 11:58:00', '-41.7506845,-2.9126946', '2025-06-20 11:32:27', 'nenhuma', 'nenhuma', '02:19:38', '00:14:49'),
+	(1750258286137, 1749728902107, 1749652085931, 'James', '00:00:02', '2025-06-18', '15:00:00', 'null', '-41.73997385844723,-2.912182190166572', NULL, 'aguardando_retorno', '2025-06-18 17:51:26', '2025-06-20 13:09:27', '-41.7506845,-2.9126946', '00:00:03', '2025-06-20 13:09:34', '-41.7506845,-2.9126946', '2025-06-20 11:33:04', 'll', 'll', '01:11:02', '00:12:28'),
+	(1750258415566, 1749727759832, 1749471474014, 'Josué', '00:00:02', '2025-06-18', '09:00:00', 'nenhuma', '-41.7734,-2.9055', NULL, 'pendente', '2025-06-18 17:53:35', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+	(1750430024014, 1749728902107, 1749652085931, 'Josué', '00:00:02', '2025-06-20', '12:00:00', 'nenhuma', '-41.7734,-2.9055', NULL, 'aguardando_retorno', '2025-06-20 17:33:44', '2025-06-20 14:33:57', '-41.7506845,-2.9126946', '00:00:11', '2025-06-20 14:34:14', '-41.7506845,-2.9126946', '2025-06-20 11:34:27', 'nenhuma', 'nenhuma', '00:00:13', '00:00:00');
 
 -- Copiando estrutura para tabela dashboard_db.task_pauses
 CREATE TABLE IF NOT EXISTS `task_pauses` (

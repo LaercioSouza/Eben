@@ -1,13 +1,9 @@
 <?php
-
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Credentials: true");
 header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
 header("Content-type: application/json; charset=utf-8");
-header("Content-type: text/plain; charset=utf-8");
-
-// listar empresas
 
 $host = 'localhost';
 $db = 'dashboard_db';
@@ -15,16 +11,12 @@ $user = 'root';
 $pass = '';
 
 $pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8", $user, $pass);
-// Receber JSON do corpo da requisição
 $data = json_decode(file_get_contents('php://input'), true);
-
-// Validar se os dados existem
 
 if (!isset($data['id'])) {
     echo json_encode(['status' => 'erro', 'mensagem' => 'ID não fornecido']);
     exit;
 }
-
 
 $sql = "SELECT 
     e.nome AS empresa,
@@ -37,13 +29,18 @@ $sql = "SELECT
     t.responsavel,
     t.descricao,
     t.formulario_id,
+    t.coordenadas,
     t.transitTime,
     t.workTime, 
     t.pauseTime, 
     t.returnTransitTime, 
     t.observations, 
     t.completionObservations, 
-    t.finalObservations
+    t.finalObservations,
+    t.cancellation_timestamp,
+    t.cancellation_reason,
+    t.cancellation_coordinates,
+    t.cancellation_photo
  FROM 
     task t
  JOIN 
@@ -52,25 +49,10 @@ $sql = "SELECT
     employees c ON t.colaborador_id = c.id
  WHERE
     t.id = :id";
+    
 $stmt = $pdo->prepare($sql);
 $stmt->execute([':id' => $data['id']]);
 $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
 echo json_encode($result);
-
-/*
-// Buscar somente id e nome
-$sql = "SELECT id, nome FROM employees";
-$stmt = $pdo->query($sql);
-$funcionarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-// Retornar JSON
-header('Content-Type: application/json');
-echo json_encode($funcionarios);
-*/
-
 ?>
-
-
-
-

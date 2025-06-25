@@ -1,0 +1,28 @@
+1) Tarefa criada em: data e hora da criação:
+   Coordenadas:
+
+2) Inicio do translado: data e hora do translado:
+   coordenadas de onde se iniciou o translado:
+
+3) Encerramento do translado: data e hora de onde encerrou:
+   coordenadas de onde se encerrou o translado:
+
+4) Inicio da tarefa: data e hora que iniciou a tarefa:
+   coordenadas de onde se iniciou a tarefa;
+
+5) Se houver pausas, data e hora da pausa:
+   coordenadas de onde se iniciou a pausa
+
+6) Retomada da atividade: data e hora da retomada:
+   coordenadas de onde se retomou a atividade.
+
+7) Conclusão da tarefa: Data e hora que a tarefa foi concluída
+   coordenadas de onde se concluiu a atividade.
+
+8) Inicio do translado de retorno: data e hora de quando se iniciou o retorno
+   coordenadas
+
+9) Encerramento do retorno: data e hora do encerramento do retorno
+   coordenadas
+
+10)Tarefa concluída: data e hora.
