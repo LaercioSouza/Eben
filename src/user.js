@@ -880,6 +880,7 @@ function startTransit() {
   const updateData = {
     taskId: currentTask.id,
     newStatus: 'em_translado',
+    transitStartLocation: currentCoordinates,
     startTime: startTime
   };
 
@@ -1117,6 +1118,7 @@ function resumeTask() {
   // Dados para enviar à API
   const resumeData = {
     taskId: currentTask.id,
+    endLocation: currentCoordinates,
     endedAt: endedAt
   };
 
@@ -1181,6 +1183,7 @@ function completeTask() {
   const updateData = {
     taskId: currentTask.id,
     newStatus: 'aguardando_retorno', // Status alterado para "aguardando_retorno"
+    locationEndTask: currentCoordinates,
     completedAt: completedAt,
     observations: observations,
     completionObservations: observations
@@ -1223,8 +1226,6 @@ function completeTask() {
     window.taskFormHandler.completeTaskWithForm(currentTask.id);
   }
   */
-
-  
 }
 
 // Start return transit function

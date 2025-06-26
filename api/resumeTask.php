@@ -46,12 +46,14 @@ try {
     // 3. Atualizar registro da pausa
     $stmt = $pdo->prepare("UPDATE task_pauses 
                               SET ended_at = :ended_at,
-                                  duration = :duration
+                                  duration = :duration,
+                                  endLocation = :endLocation
                             WHERE id = :id");
     
     $stmt->execute([
         ':ended_at' => $data['endedAt'],
         ':duration' => $duration,
+        ':endLocation' => $data['endLocation'],
         ':id' => $pause['id']
     ]);
 

@@ -25,11 +25,13 @@ try {
     if ($data['newStatus'] === 'em_translado') {
         $stmt = $pdo->prepare("UPDATE task SET 
                                 status = :status,
+                                transitStartLocation = :transitStartLocation,
                                 transitStartedAt = :transitStartedAt
                               WHERE id = :taskId");
         
         $stmt->execute([
             ':status' => $data['newStatus'],
+            ':transitStartLocation' => $data['transitStartLocation'],
             ':transitStartedAt' => $data['startTime'],
             ':taskId' => $data['taskId']
         ]);
@@ -62,12 +64,14 @@ try {
         $stmt = $pdo->prepare("UPDATE task SET 
                                 status = :status,
                                 transitEndLocation = :transitEndLocation,
+                                TransitEndAt = :TransitEndAt,
                                 transitTime = :transitTime
                                WHERE id = :taskId");
         
         $stmt->execute([
             ':status' => $data['newStatus'],
             ':transitEndLocation' => $data['coordinates'],
+            ':TransitEndAt' => $data['endTime'],
             ':transitTime' => $transitTime,
             ':taskId' => $data['taskId']
         ]);
@@ -128,6 +132,7 @@ try {
                                 completedAt = :completedAt,
                                 observations = :observations,
                                 completionObservations = :completionObservations,
+                                locationEndTask = :locationEndTask,
                                 workTime = :workTime,
                                 pauseTime = :pauseTime
                                WHERE id = :taskId");
@@ -137,6 +142,7 @@ try {
             ':completedAt' => $data['completedAt'],
             ':observations' => $data['observations'],
             ':completionObservations' => $data['completionObservations'],
+            ':locationEndTask' => $data['locationEndTask'],
             ':workTime' => $workTime,
             ':pauseTime' => $pauseTime,
             ':taskId' => $taskId
@@ -184,6 +190,7 @@ try {
     $stmt = $pdo->prepare("UPDATE task SET 
                             status = :status,
                             returnEndLocation = :returnEndLocation,
+                            ReturnEndAt = :ReturnEndAt,
                             returnTransitTime = :returnTransitTime
                            WHERE id = :taskId");
     
@@ -191,6 +198,7 @@ try {
         ':status' => 'finalizado',
         ':returnEndLocation' => $data['returnEndLocation'],
         ':returnTransitTime' => $returnTransitTime,
+        ':ReturnEndAt' => $data['endTime'],
         ':taskId' => $taskId
     ]);
 }

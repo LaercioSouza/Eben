@@ -595,8 +595,6 @@ function initPerformanceCharts(task, efficiency, actualHours, tempoSugeridoDecim
 }
 
 function setupCollapsibleHistory() {
-  
-
   const historyToggle = document.getElementById('historyToggle');
   const historyContent = document.getElementById('historyContent');
   const historyIcon = document.getElementById('historyIcon');
@@ -641,39 +639,67 @@ function setupCollapsibleHistory() {
 }
 
 function loadTaskHistory(task) {
-  
-  const historyList = document.getElementById('task-history-list');
+    const historyList = document.getElementById('task-history-list');
+  historyList.innerHTML = '<p class="text-muted">Carregando histórico...</p>';
 
-  if (!task.history || task.history.length === 0) {
-    historyList.innerHTML = '<p class="text-muted">Nenhum histórico disponível</p>';
-    return;
-  }
+  fetch("https://localhost/EBEN/api/get_task_history.php", {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ id: task.id })
+  })
+  .then(response => response.json())
+  .then(historyData => {
+    console.log('Dados do histórico:', historyData);
+    const history = historyData.history;
 
+    if (!history || history.length === 0) {
+        historyList.innerHTML = '<p class="text-muted">Nenhum histórico disponível</p>';
+        return;
+      }
 
-  const historyHtml = task.history.map((entry, index) => {
-    const date = new Date(entry.timestamp);
-    const formattedDate = date.toLocaleDateString('pt-BR');
-    const formattedTime = date.toLocaleTimeString('pt-BR');
-    const coords = entry.coordinates ? entry.coordinates.split(',') : null;
-    const locationInfo = coords ? `Lat: ${parseFloat(coords[1]).toFixed(6)}, Lng: ${parseFloat(coords[0]).toFixed(6)}` : 'Localização não disponível';
+    // Usa os dados na ordem original da API
+    const historyHtml = history.map(entry => {
+      const date = new Date(entry.timestamp);
+      const formattedDate = date.toLocaleDateString('pt-BR');
+      const formattedTime = date.toLocaleTimeString('pt-BR');
+      
+      // Extrai coordenadas (se existirem)
+      let locationInfo = 'Localização não disponível';
+      let coords = null;
+      
+      if (entry.coordinates) {
+        coords = entry.coordinates.split(',');
+        locationInfo = `Lat: ${parseFloat(coords[1]).toFixed(6)}, Lng: ${parseFloat(coords[0]).toFixed(6)}`;
+      }
 
-    return `
-      <div class="border-start border-primary ps-3 mb-3">
-        <div class="d-flex justify-content-between align-items-start">
-          <div>
-            <div class="fw-bold">${getActionText(entry.action)}</div>
-            <small class="text-muted">${formattedDate} às ${formattedTime}</small>
-            <br><small class="text-info">${locationInfo}</small>
-            ${entry.observations ? `<br><small class="text-secondary"><strong>Observações:</strong> ${entry.observations}</small>` : ''}
-            ${entry.reason ? `<br><small class="text-warning"><strong>Motivo:</strong> ${entry.reason}</small>` : ''}
+      return `
+        <div class="border-start border-primary ps-3 mb-3">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <div class="fw-bold">${getActionText(entry.action)}</div>
+              <small class="text-muted">${formattedDate} às ${formattedTime}</small>
+              <br><small class="text-info">${locationInfo}</small>
+              ${entry.observations ? `<br><small class="text-secondary"><strong>Observações:</strong> ${entry.observations}</small>` : ''}
+              ${entry.reason ? `<br><small class="text-warning"><strong>Motivo:</strong> ${entry.reason}</small>` : ''}
+            </div>
+            ${coords ? 
+              `<button class="btn btn-sm btn-outline-primary" 
+                onclick="showLocationOnMap('${coords[1]}', '${coords[0]}', '${getActionText(entry.action)}')">
+                Ver no Mapa
+              </button>` : 
+              ''
+            }
           </div>
-          ${coords ? `<button class="btn btn-sm btn-outline-primary" onclick="showLocationOnMap('${coords[1]}', '${coords[0]}', '${getActionText(entry.action)}')">Ver no Mapa</button>` : ''}
         </div>
-      </div>
-    `;
-  }).join('');
+      `;
+    }).join('');
 
-  historyList.innerHTML = historyHtml;
+    historyList.innerHTML = historyHtml;
+  })
+  .catch(error => {
+    console.error('Erro ao carregar histórico:', error);
+    historyList.innerHTML = '<p class="text-danger">Erro ao carregar histórico</p>';
+  });
 }
 
 function showFormResponses(task) {
@@ -1084,6 +1110,32 @@ function deleteTask(taskId) {
 
 function getActionText(action) {
   const actions = {
+    'criado': 'Tarefa Criada',
+    'inicio_translado': 'Iniciou Translado',
+    'fim_translado': 'Encerrou Translado',
+    'inicio_tarefa': 'Tarefa Iniciada',
+    'pausa': 'Tarefa Pausada',
+    'retomada': 'Tarefa Retomada',
+    'conclusao_tarefa': 'Tarefa Concluída',
+    'inicio_retorno': 'Iniciou Retorno',
+    'fim_retorno': 'Encerrou Retorno',
+    'finalizada': 'Tarefa Finalizada',
+    
+    // Aliases para compatibilidade
+    'criada': 'Tarefa Criada',
+    'iniciou_translado': 'Iniciou Translado',
+    'encerrou_translado': 'Encerrou Translado',
+    'iniciada': 'Tarefa Iniciada',
+    'pausada': 'Tarefa Pausada',
+    'concluida': 'Tarefa Concluída',
+    'iniciou_retorno': 'Iniciou Retorno',
+    'cancelada': 'Tarefa Cancelada'
+  };
+  
+  return actions[action] || action.replace(/_/g, ' ');
+
+  /*
+  const actions = {
     'criada': 'Tarefa Criada',
     'iniciou_translado': 'Iniciou Translado',
     'encerrou_translado': 'Encerrou Translado',
@@ -1096,6 +1148,7 @@ function getActionText(action) {
     'cancelada': 'Tarefa Cancelada'
   };
   return actions[action] || action;
+  */
 }
 
 function generatePerformanceCharts() {
