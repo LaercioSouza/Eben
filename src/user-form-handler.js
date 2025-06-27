@@ -1,11 +1,11 @@
 //user-form-HandPlatter.js
 // Form handling for user tasks
-function showTaskFormModal(taskId) {
-  console.log('Opening form modal for task:', taskId);
-  const task = window.dataService.getById(window.dataService.DATA_TYPES.TASKS, taskId);
-  if (!task || !task.formularioId) {
-    console.log('No task or form found for task:', taskId);
-    // If no form, show observations modal instead
+function showTaskFormModal(taskId, formularioId) {
+    console.log('Opening form modal for task:', taskId);
+
+  // Se a tarefa não tem formulário, redireciona para observações
+  if (!formularioId) {
+    console.log('No form found for task:', taskId);
     showObservationsModal((observations) => {
       if (observations !== null) {
         getCurrentLocation((coords) => {
@@ -16,101 +16,107 @@ function showTaskFormModal(taskId) {
     return;
   }
 
-  const form = window.dataService.getById(window.dataService.DATA_TYPES.FORMS, task.formularioId);
-  if (!form) {
-    console.log('Form not found:', task.formularioId);
-    // If form not found, show observations modal instead
-    showObservationsModal((observations) => {
-      if (observations !== null) {
-        getCurrentLocation((coords) => {
-          completeTaskDirectly(taskId, coords, observations);
-        });
+  // Buscar os dados do formulário no backend
+  fetch("https://localhost/EBEN/api/showformdescription.php", {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: formularioId })
+  })
+    .then(response => response.json())
+    .then(form => {
+      if (!form || !form.perguntas) {
+        throw new Error('Formulário inválido ou vazio');
       }
-    });
-    return;
-  }
 
-  // Create modal HTML
-  const modalHtml = `
-    <div class="modal fade" id="taskFormModal" tabindex="-1" aria-hidden="true">
-      <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-          <div class="modal-header bg-success text-white">
-            <h5 class="modal-title">Formulário: ${form.name}</h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body">
-            <div class="alert alert-info">
-              <strong>Atenção:</strong> Este formulário deve ser preenchido antes de finalizar a tarefa.
-            </div>
-            ${form.description ? `<p class="text-muted">${form.description}</p>` : ''}
-            <form id="taskFormAnswers">
-              ${generateFormQuestions(form.questions, taskId)}
-              <div class="d-grid mt-4">
-                <button type="submit" class="btn btn-success">Finalizar Tarefa</button>
+      // Gerar HTML do modal
+      const modalHtml = `
+        <div class="modal fade" id="taskFormModal" tabindex="-1" aria-hidden="true">
+          <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+              <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">Formulário: ${form.titulo_formulario}</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
               </div>
-            </form>
+              <div class="modal-body">
+                <div class="alert alert-info">
+                  <strong>Atenção:</strong> Este formulário deve ser preenchido antes de finalizar a tarefa.
+                </div>
+                ${form.descricao_formulario ? `<p class="text-muted">${form.descricao_formulario}</p>` : ''}
+                <form id="taskFormAnswers">
+                  ${generateFormQuestions(form.perguntas)}
+                  <div class="d-grid mt-4">
+                    <button type="submit" class="btn btn-success">Finalizar Tarefa</button>
+                  </div>
+                </form>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
-  `;
+      `;
 
-  // Remove existing modal if any
-  const existingModal = document.getElementById('taskFormModal');
-  if (existingModal) {
-    existingModal.remove();
-  }
+      // Remover modal existente e adicionar novo
+      const existingModal = document.getElementById('taskFormModal');
+      if (existingModal) existingModal.remove();
+      document.body.insertAdjacentHTML('beforeend', modalHtml);
 
-  // Add modal to page
-  document.body.insertAdjacentHTML('beforeend', modalHtml);
+      const modal = new bootstrap.Modal(document.getElementById('taskFormModal'));
+      modal.show();
 
-  // Show modal
-  const modal = new bootstrap.Modal(document.getElementById('taskFormModal'));
-  modal.show();
-
-  // Handle form submission
-  document.getElementById('taskFormAnswers').addEventListener('submit', function (e) {
-    e.preventDefault();
-    saveTaskFormAnswers(taskId, form, modal);
-  });
+      // Submissão
+      document.getElementById('taskFormAnswers').addEventListener('submit', function (e) {
+        e.preventDefault();
+        saveTaskFormAnswers(taskId, form, modal);
+      });
+    })
+    .catch(error => {
+      console.error('Erro ao carregar o formulário:', error);
+      alert('Erro ao carregar o formulário. Tente novamente.');
+    });
 }
 
 // Main function to handle task completion - this should be called from user.js
 function completeTaskWithForm(taskId) {
-  console.log('Starting task completion with form check for task:', taskId);
-  const task = window.dataService.getById(window.dataService.DATA_TYPES.TASKS, taskId);
+    console.log('Starting task completion with form check for task:', taskId);
 
-  if (!task) {
-    console.log('Task not found:', taskId);
-    showToast('Tarefa não encontrada!', 'danger');
-    return;
-  }
+  // Buscar dados da tarefa via backend
+  fetch("https://localhost/EBEN/api/buscar-tarefa.php", {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: taskId })
+  })
+    .then(response => response.json())
+    .then(task => {
+      if (!task) {
+        console.log('Task not found:', taskId);
+        showToast('Tarefa não encontrada!', 'danger');
+        return;
+      }
 
-  // Impede reabertura do formulário se já respondeu
-  if (task.status !== 'em_andamento') {
-    showToast('O formulário já foi respondido ou esta etapa já foi concluída.', 'warning');
-    return;
-  }
+      /*
+      if (task.status !== 'em_andamento') {
+        showToast('O formulário já foi respondido ou esta etapa já foi concluída.', 'warning');
+        return;
+      }
+      */
 
-  if (task.formularioId) {
-    const form = window.dataService.getById(window.dataService.DATA_TYPES.FORMS, task.formularioId);
-    if (form) {
-      console.log('Form found, showing form modal:', form.name);
-      showTaskFormModal(taskId);
-      return;
-    }
-  }
-
-  // Fluxo para tarefas sem formulário
-  console.log('No form found, showing observations modal');
-  showObservationsModal((observations) => {
-    if (observations !== null) {
-      getCurrentLocation((coords) => {
-        completeTaskDirectly(taskId, coords, observations);
-      });
-    }
-  });
+      if (task.formularioId) {
+        console.log('Form found, showing form modal:', task.formularioId);
+        showTaskFormModal(taskId, task.formularioId);
+      } else {
+        // Se não tiver formulário, mostrar observações direto
+        showObservationsModal((observations) => {
+          if (observations !== null) {
+            getCurrentLocation((coords) => {
+              completeTaskDirectly(taskId, coords, observations);
+            });
+          }
+        });
+      }
+    })
+    .catch(error => {
+      console.error('Erro ao buscar a tarefa:', error);
+      showToast('Erro ao buscar os dados da tarefa.', 'danger');
+    });
 }
 
 function loadUserTasks() {
@@ -244,36 +250,36 @@ function showPauseReasonModal(callback) {
   showObservationsModal(callback, 'Motivo da Pausa', 'Descreva o motivo da pausa na execução da tarefa...');
 }
 
-function generateFormQuestions(questions, taskId) {
-  return questions.map(question => {
+function generateFormQuestions(questions) {
+    return questions.map(question => {
     let html = `<div class="mb-3">`;
-    html += `<label class="form-label">${question.text} ${question.required ? '<span class="text-danger">*</span>' : ''}</label>`;
+    html += `<label class="form-label">${question.texto} ${question.obrigatoria ? '<span class="text-danger">*</span>' : ''}</label>`;
 
-    const fieldName = `question_${question.id}`;
+    const fieldName = `question_${question.id_pergunta}`;
 
-    switch (question.type) {
+    switch (question.tipo) {
       case 'text':
-        html += `<input type="text" class="form-control" name="${fieldName}" ${question.required ? 'required' : ''}>`;
+        html += `<input type="text" class="form-control" name="${fieldName}" ${question.obrigatoria ? 'required' : ''}>`;
         break;
       case 'textarea':
-        html += `<textarea class="form-control" name="${fieldName}" rows="3" ${question.required ? 'required' : ''}></textarea>`;
+        html += `<textarea class="form-control" name="${fieldName}" rows="3" ${question.obrigatoria ? 'required' : ''}></textarea>`;
         break;
       case 'checkbox':
-        question.options.forEach((option, index) => {
+        question.alternativas.forEach((alt, index) => {
           html += `
             <div class="form-check">
-              <input class="form-check-input" type="checkbox" name="${fieldName}" value="${option}" id="${fieldName}_${index}">
-              <label class="form-check-label" for="${fieldName}_${index}">${option}</label>
+              <input class="form-check-input" type="checkbox" name="${fieldName}" value="${alt.texto_alternative}" id="${fieldName}_${index}">
+              <label class="form-check-label" for="${fieldName}_${index}">${alt.texto_alternative}</label>
             </div>
           `;
         });
         break;
       case 'radio':
-        question.options.forEach((option, index) => {
+        question.alternativas.forEach((alt, index) => {
           html += `
             <div class="form-check">
-              <input class="form-check-input" type="radio" name="${fieldName}" value="${option}" id="${fieldName}_${index}" ${question.required ? 'required' : ''}>
-              <label class="form-check-label" for="${fieldName}_${index}">${option}</label>
+              <input class="form-check-input" type="radio" name="${fieldName}" value="${alt.texto_alternative}" id="${fieldName}_${index}" ${question.obrigatoria ? 'required' : ''}>
+              <label class="form-check-label" for="${fieldName}_${index}">${alt.texto_alternative}</label>
             </div>
           `;
         });

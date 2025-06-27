@@ -98,6 +98,19 @@ INSERT INTO `form` (`id`, `titulo`, `descricao`, `criado_em`) VALUES
 	(1749651772345, 'Formulário de dev', 'nenhuma', '2025-06-11 17:22:52'),
 	(1750079659197, 'jkj', 'jkj', '2025-06-16 16:14:19');
 
+-- Copiando estrutura para tabela dashboard_db.form_response
+CREATE TABLE IF NOT EXISTS `form_response` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `id_formulario` bigint(20) NOT NULL,
+  `respondido_em` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `id_formulario` (`id_formulario`),
+  CONSTRAINT `form_response_ibfk_1` FOREIGN KEY (`id_formulario`) REFERENCES `form` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Copiando dados para a tabela dashboard_db.form_response: ~0 rows (aproximadamente)
+DELETE FROM `form_response`;
+
 -- Copiando estrutura para tabela dashboard_db.question
 CREATE TABLE IF NOT EXISTS `question` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,
@@ -117,6 +130,37 @@ INSERT INTO `question` (`id`, `id_formulario`, `texto`, `tipo`, `obrigatoria`) V
 	(6, 1749651772345, 'Quais seus frameworks?', 'checkbox', 1),
 	(7, 1749651772345, 'O que acha de desenvolvimento web?', 'text', 0),
 	(13, 1750079659197, 'kmk', 'text', 0);
+
+-- Copiando estrutura para tabela dashboard_db.question_response
+CREATE TABLE IF NOT EXISTS `question_response` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `id_form_response` bigint(20) NOT NULL,
+  `id_pergunta` bigint(20) NOT NULL,
+  `resposta_texto` text DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `id_form_response` (`id_form_response`),
+  KEY `id_pergunta` (`id_pergunta`),
+  CONSTRAINT `question_response_ibfk_1` FOREIGN KEY (`id_form_response`) REFERENCES `form_response` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `question_response_ibfk_2` FOREIGN KEY (`id_pergunta`) REFERENCES `question` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Copiando dados para a tabela dashboard_db.question_response: ~0 rows (aproximadamente)
+DELETE FROM `question_response`;
+
+-- Copiando estrutura para tabela dashboard_db.question_response_alternative
+CREATE TABLE IF NOT EXISTS `question_response_alternative` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `id_question_response` bigint(20) NOT NULL,
+  `id_alternativa` bigint(20) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `id_question_response` (`id_question_response`),
+  KEY `id_alternativa` (`id_alternativa`),
+  CONSTRAINT `question_response_alternative_ibfk_1` FOREIGN KEY (`id_question_response`) REFERENCES `question_response` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `question_response_alternative_ibfk_2` FOREIGN KEY (`id_alternativa`) REFERENCES `alternative` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Copiando dados para a tabela dashboard_db.question_response_alternative: ~0 rows (aproximadamente)
+DELETE FROM `question_response_alternative`;
 
 -- Copiando estrutura para tabela dashboard_db.task
 CREATE TABLE IF NOT EXISTS `task` (
@@ -166,13 +210,15 @@ CREATE TABLE IF NOT EXISTS `task` (
   CONSTRAINT `task_ibfk_3` FOREIGN KEY (`formulario_id`) REFERENCES `form` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- Copiando dados para a tabela dashboard_db.task: ~1 rows (aproximadamente)
+-- Copiando dados para a tabela dashboard_db.task: ~3 rows (aproximadamente)
 DELETE FROM `task`;
 INSERT INTO `task` (`id`, `empresa_id`, `colaborador_id`, `responsavel`, `tempo_sugerido`, `data_tarefa`, `hora_tarefa`, `descricao`, `coordenadas`, `formulario_id`, `status`, `criado_em`, `transitStartedAt`, `transitEndLocation`, `transitTime`, `taskStartedAt`, `startLocation`, `completedAt`, `observations`, `completionObservations`, `workTime`, `pauseTime`, `returnStartLocation`, `returnStartedAt`, `returnEndLocation`, `returnTransitTime`, `finalizedAt`, `finalObservations`, `totalTime`, `cancellation_timestamp`, `cancellation_reason`, `cancellation_coordinates`, `cancellation_photo`, `transitStartLocation`, `transitEndAt`, `ReturnEndAt`, `locationEndTask`) VALUES
 	(1750939249252, 1749471447370, 1749652085931, 'Josué', '02:00:00', '2025-06-26', '12:00:00', 'Nenhuma', '-41.7734,-2.9055', NULL, 'concluida', '2025-06-26 15:00:49', '2025-06-26 12:00:57', '-41.7506844,-2.914316', '00:00:09', '2025-06-26 12:02:49', '-41.7506844,-2.914316', '2025-06-26 09:24:31', '', '', '00:11:42', '00:10:00', '-41.7506844,-2.914316', '2025-06-26 09:26:36', '-41.7506844,-2.914316', '00:08:35', '2025-06-26 09:36:28', 'l', '00:35:31', NULL, NULL, NULL, NULL, '-41.7506844,-2.914316', '2025-06-26 12:01:06', '2025-06-26 12:35:11', '-41.7506844,-2.914316'),
 	(1750946509551, 1749471447370, 1749652085931, 'Josué', '02:00:00', '2025-06-26', '12:00:00', 'nenhuma', '-41.7734,-2.9055', NULL, 'concluida', '2025-06-26 17:01:49', '2025-06-26 14:02:09', '-41.7506844,-2.914316', '00:00:05', '2025-06-26 14:02:26', '-41.7506844,-2.914316', '2025-06-26 11:02:46', 'ded', 'ded', '00:00:16', '00:00:04', '-41.7506844,-2.914316', '2025-06-26 11:03:02', '-41.7506844,-2.914316', '00:00:06', '2025-06-26 11:03:16', 'd', '00:01:07', NULL, NULL, NULL, NULL, '-41.7506844,-2.914316', '2025-06-26 14:02:14', '2025-06-26 14:03:08', '-41.7506844,-2.914316'),
 	(1750946650181, 1749727759832, 1749471474014, 'Josué', '02:00:00', '2025-06-26', '12:00:00', 'null', '-41.72949461101001,-2.8994955817892487', NULL, 'concluida', '2025-06-26 17:04:10', '2025-06-26 14:06:01', '-41.7506844,-2.914316', '00:00:07', '2025-06-26 14:06:21', '-41.7506844,-2.914316', '2025-06-26 11:06:28', '', '', '00:00:07', '00:00:00', '-41.7506844,-2.914316', '2025-06-26 11:06:32', '-41.7506844,-2.914316', '00:00:21', '2025-06-26 11:07:04', '', '00:01:03', NULL, NULL, NULL, NULL, '-41.7506844,-2.914316', '2025-06-26 14:06:08', '2025-06-26 14:06:53', '-41.7506844,-2.914316'),
-	(1750946673297, 1749727759832, 1749471474014, 'Pedro', '02:00:00', '2025-06-26', '13:00:00', 'nenhuma', '-41.75456449216525,-2.910810671814832', NULL, 'concluida', '2025-06-26 17:04:33', '2025-06-26 14:07:18', '-41.7506844,-2.914316', '00:00:05', '2025-06-26 14:07:29', '-41.7506844,-2.914316', '2025-06-26 11:07:33', '', '', '00:00:04', '00:00:00', '-41.7506844,-2.914316', '2025-06-26 11:07:37', '-41.7506844,-2.914316', '00:00:04', '2025-06-26 11:07:45', '', '00:00:27', NULL, NULL, NULL, NULL, '-41.7506844,-2.914316', '2025-06-26 14:07:23', '2025-06-26 14:07:41', '-41.7506844,-2.914316');
+	(1750946673297, 1749727759832, 1749471474014, 'Pedro', '02:00:00', '2025-06-26', '13:00:00', 'nenhuma', '-41.75456449216525,-2.910810671814832', NULL, 'concluida', '2025-06-26 17:04:33', '2025-06-26 14:07:18', '-41.7506844,-2.914316', '00:00:05', '2025-06-26 14:07:29', '-41.7506844,-2.914316', '2025-06-26 11:07:33', '', '', '00:00:04', '00:00:00', '-41.7506844,-2.914316', '2025-06-26 11:07:37', '-41.7506844,-2.914316', '00:00:04', '2025-06-26 11:07:45', '', '00:00:27', NULL, NULL, NULL, NULL, '-41.7506844,-2.914316', '2025-06-26 14:07:23', '2025-06-26 14:07:41', '-41.7506844,-2.914316'),
+	(1751025710977, 1749727759832, 1749652085931, 'Josué', '02:00:00', '2025-06-27', '12:00:00', 'nenhuma', '-41.7734,-2.9055', 1749651772345, 'aguardando_retorno', '2025-06-27 15:01:50', '2025-06-27 14:50:21', '-41.7506844,-2.9152086', '00:00:04', '2025-06-27 14:50:29', '-41.7506844,-2.9152086', '2025-06-27 11:50:34', '', '', '00:00:05', '00:00:00', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '-41.7506844,-2.9152086', '2025-06-27 14:50:25', NULL, '-41.7506844,-2.9152086'),
+	(1751035924484, 1749727759832, 1749652085931, 'Josué', '02:00:00', '2025-06-27', '12:00:00', 'd', '-41.7734,-2.9055', 1749651772345, 'aguardando_retorno', '2025-06-27 17:52:04', '2025-06-27 14:52:34', '-41.7506844,-2.9152086', '00:00:04', '2025-06-27 14:52:41', '-41.7506844,-2.9152086', '2025-06-27 11:52:46', '', '', '00:00:05', '00:00:00', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '-41.7506844,-2.9152086', '2025-06-27 14:52:38', NULL, '-41.7506844,-2.9152086');
 
 -- Copiando estrutura para tabela dashboard_db.task_pauses
 CREATE TABLE IF NOT EXISTS `task_pauses` (
@@ -191,7 +237,7 @@ CREATE TABLE IF NOT EXISTS `task_pauses` (
   CONSTRAINT `task_pauses_ibfk_1` FOREIGN KEY (`task_id`) REFERENCES `task` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- Copiando dados para a tabela dashboard_db.task_pauses: ~1 rows (aproximadamente)
+-- Copiando dados para a tabela dashboard_db.task_pauses: ~2 rows (aproximadamente)
 DELETE FROM `task_pauses`;
 INSERT INTO `task_pauses` (`id`, `task_id`, `started_at`, `ended_at`, `duration`, `location`, `reason`, `created_at`, `updated_at`, `endLocation`) VALUES
 	(8, 1750939249252, '2025-06-26 09:03:40', '2025-06-26 09:13:40', '00:10:00', '-41.7506844,-2.914316', 'Teste para o histórico de pausas', '2025-06-26 12:03:40', '2025-06-26 12:13:40', '-41.7506844,-2.914316'),

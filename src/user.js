@@ -1176,6 +1176,12 @@ function completeTask() {
   // Solicitar observações
   const observations = prompt('Observações sobre o atendimento (opcional):') || '';
 
+    //Se existir handler de formulário, aciona-o primeiro
+  if (window.taskFormHandler && typeof window.taskFormHandler.completeTaskWithForm === 'function') {
+    window.taskFormHandler.completeTaskWithForm(currentTask.id);
+  }
+    
+
   // Obter data/hora local para o término do atendimento
   const completedAt = getLocalISOString();
 
