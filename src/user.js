@@ -1173,66 +1173,68 @@ function completeTask() {
     return;
   }
 
-  // Solicitar observações
+  // Verificar se a tarefa tem formulário
+  fetch("https://localhost/EBEN/api/formdescription.php", {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ task_id: currentTask.id })
+  })
+    .then(response => response.json())
+    .then(form => {
+      if (form && form.perguntas && form.perguntas.length > 0) {
+        // Existe formulário: mostrar o modal e bloquear execução até ser respondido
+        showTaskFormModal(currentTask.id, form);
+        
+        
+      } else {
+        // Sem formulário: seguir fluxo normal
+        finalizarTarefaSemFormulario();
+      }
+    })
+    .catch(error => {
+      console.error('Erro ao verificar formulário:', error);
+      alert('Erro ao verificar se a tarefa possui formulário.');
+    });
+}
+function finalizarTarefaSemFormulario() {
   const observations = prompt('Observações sobre o atendimento (opcional):') || '';
-
-    //Se existir handler de formulário, aciona-o primeiro
-  if (window.taskFormHandler && typeof window.taskFormHandler.completeTaskWithForm === 'function') {
-    window.taskFormHandler.completeTaskWithForm(currentTask.id);
-  }
-    
-
-  // Obter data/hora local para o término do atendimento
   const completedAt = getLocalISOString();
 
-  // Dados para enviar à API
   const updateData = {
     taskId: currentTask.id,
-    newStatus: 'aguardando_retorno', // Status alterado para "aguardando_retorno"
+    newStatus: 'aguardando_retorno',
     locationEndTask: currentCoordinates,
     completedAt: completedAt,
     observations: observations,
     completionObservations: observations
   };
 
-  // Enviar atualização para o servidor
   fetch("https://localhost/EBEN/api/updateTaskStatus.php", {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(updateData)
   })
-  .then(response => response.json())
-  .then(result => {
-    if (result.success) {
-      // Atualizar localmente a tarefa atual
-      currentTask.status = 'aguardando_retorno';
-      
-      // Fechar modal
-      const modal = bootstrap.Modal.getInstance(document.getElementById('taskDetailModal'));
-      if (modal) modal.hide();
+    .then(response => response.json())
+    .then(result => {
+      if (result.success) {
+        currentTask.status = 'aguardando_retorno';
 
-      // Atualizar lista de tarefas
-      loadTaskList();
-      console.log(currentTask);
+        const modal = bootstrap.Modal.getInstance(document.getElementById('taskDetailModal'));
+        if (modal) modal.hide();
 
-      alert('Atendimento concluído com sucesso!');
-    } else {
-      alert('Erro ao concluir atendimento: ' + (result.message || 'Erro desconhecido'));
-    }
-  })
-  .catch(error => {
-    console.error('Erro ao concluir atendimento:', error);
-    alert('Erro ao concluir atendimento. Tente novamente.');
-  });
-  
-  /* Por enquanto não faremos isso, se trata das respostas dos formulários.
-  if (window.taskFormHandler && typeof window.taskFormHandler.completeTaskWithForm === 'function') {
-    window.taskFormHandler.completeTaskWithForm(currentTask.id);
-  }
-  */
+        loadTaskList();
+        console.log(currentTask);
+      } else {
+        alert('Erro ao concluir atendimento: ' + (result.message || 'Erro desconhecido'));
+      }
+    })
+    .catch(error => {
+      console.error('Erro ao concluir atendimento:', error);
+      alert('Erro ao concluir atendimento. Tente novamente.');
+    });
 }
+
+
 
 // Start return transit function
 function startReturnTransit() {
@@ -1474,4 +1476,228 @@ function cancelTask() {
     loadTaskList();
     alert('Tarefa cancelada com sucesso!');
   }
+}
+function showTaskFormModal(taskId, form) {
+    console.log('Opening form modal for task:', taskId);
+  /*
+        .then(response => response.text()) // <- Use .text() temporariamente
+        .then(text => {
+        console.log('Resposta bruta:', text);
+          const form = JSON.parse(text);
+    */    
+      if (!form || !form.perguntas) {
+        throw new Error('Formulário inválido ou vazio');
+      }
+
+      // Gerar HTML do modal
+      const modalHtml = `
+        <div class="modal fade" id="taskFormModal" tabindex="-1" aria-hidden="true">
+          <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+              <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">Formulário: ${form.titulo_formulario}</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                <div class="alert alert-info">
+                  <strong>Atenção:</strong> Este formulário deve ser preenchido antes de finalizar a tarefa.
+                </div>
+                ${form.descricao_formulario ? `<p class="text-muted">${form.descricao_formulario}</p>` : ''}
+                <form id="taskFormAnswers">
+                  ${generateFormQuestions(form.perguntas)}
+                  <div class="d-grid mt-4">
+                    <button type="submit" class="btn btn-success">Finalizar Tarefa</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      // Remover modal existente e adicionar novo
+      const existingModal = document.getElementById('taskFormModal');
+      if (existingModal) existingModal.remove();
+      document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+      const modal = new bootstrap.Modal(document.getElementById('taskFormModal'));
+      modal.show();
+
+      // Submissão
+      document.getElementById('taskFormAnswers').addEventListener('submit', function (e) {
+        e.preventDefault();
+        saveTaskFormAnswers(taskId, form, modal);
+      });
+    
+}
+function generateFormQuestions(questions) {
+    return questions.map(question => {
+    let html = `<div class="mb-3">`;
+    html += `<label class="form-label">${question.texto} ${question.obrigatoria ? '<span class="text-danger">*</span>' : ''}</label>`;
+
+    const fieldName = `question_${question.id_pergunta}`;
+
+    switch (question.tipo) {
+      case 'text':
+        html += `<input type="text" class="form-control" name="${fieldName}" ${question.obrigatoria ? 'required' : ''}>`;
+        break;
+      case 'textarea':
+        html += `<textarea class="form-control" name="${fieldName}" rows="3" ${question.obrigatoria ? 'required' : ''}></textarea>`;
+        break;
+      case 'checkbox':
+        question.alternativas.forEach((alt, index) => {
+          html += `
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="${fieldName}" value="${alt.texto_alternative}" id="${fieldName}_${index}">
+              <label class="form-check-label" for="${fieldName}_${index}">${alt.texto_alternative}</label>
+            </div>
+          `;
+        });
+        break;
+      case 'radio':
+        question.alternativas.forEach((alt, index) => {
+          html += `
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="${fieldName}" value="${alt.texto_alternative}" id="${fieldName}_${index}" ${question.obrigatoria ? 'required' : ''}>
+              <label class="form-check-label" for="${fieldName}_${index}">${alt.texto_alternative}</label>
+            </div>
+          `;
+        });
+        break;
+    }
+
+    html += `</div>`;
+    return html;
+  }).join('');
+}
+function saveTaskFormAnswers(taskId, form, modal) {
+  
+  console.log('Saving task form answers for task:', taskId);
+
+  const formData = new FormData(document.getElementById('taskFormAnswers'));
+  const answers = [];
+  let validationError = false;
+
+  form.perguntas.forEach(question => {
+    const fieldName = `question_${question.id_pergunta}`;
+    let answer = null;
+
+    switch (question.tipo) {
+      case 'text':
+      case 'textarea':
+      case 'radio':
+        answer = formData.get(fieldName);
+        break;
+      case 'checkbox':
+        const checkboxValues = formData.getAll(fieldName);
+        answer = checkboxValues.length > 0 ? checkboxValues : null;
+        break;
+    }
+
+    if (question.obrigatoria === '1') {
+      if (!answer || (Array.isArray(answer) && answer.length === 0)) {
+        alert(`Por favor, responda a pergunta obrigatória: ${question.texto}`);
+        validationError = true;
+        return;
+      }
+    }
+    
+
+
+    answers.push({
+      questionId: question.id_pergunta,
+      questionText: question.texto,
+      questionType: question.tipo,
+      answer: answer
+    });
+  });
+
+  console.log(answers)
+
+  if (validationError) return;
+  const response = getLocalISOString();
+
+  const payload = {
+    taskId: taskId,
+    response: response,
+    formResponse: {
+      formId: form.id_formulario,
+      formName: form.titulo_formulario,
+      answers: answers
+    }
+  };
+
+  fetch("https://localhost/EBEN/api/salvar-respostas-e-atualizar-tarefa.php", {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+  /*
+  .then(response => response.text()) // <- Use .text() temporariamente
+  .then(text => {
+  console.log('Resposta bruta:', text);
+  const form = JSON.parse(text); 
+  */
+  
+  .then(response => response.json())
+  .then(result => {
+    if (result.success) {
+      // ⭐ 1. Verifique se modal existe antes de usar!
+      if (modal && typeof modal.hide === 'function') {
+        modal.hide();
+      }
+      
+      document.getElementById('taskFormModal')?.remove();
+      
+      const taskDetailModal = bootstrap.Modal.getInstance(
+        document.getElementById('taskDetailModal')
+      );
+      taskDetailModal?.hide();
+      
+      showToast('Tarefa concluída com sucesso!', 'success');
+    } else {
+      // ⭐ 2. Não tente acessar result.message se ele puder conter referências problemáticas
+      console.error('Erro no servidor:', result.error || 'Mensagem de erro não disponível');
+      showToast('Erro ao salvar respostas.', 'danger');
+    }
+  })
+  .catch(error => {
+    console.error('Erro na requisição:', error);
+    showToast('Erro ao salvar os dados da tarefa.', 'danger');
+  });
+  const observations = prompt('Observações sobre o atendimento (opcional):') || '';
+  const completedAt = getLocalISOString();
+
+  const updateData = {
+    taskId: currentTask.id,
+    newStatus: 'aguardando_retorno',
+    locationEndTask: currentCoordinates,
+    completedAt: completedAt,
+    observations: observations,
+    completionObservations: observations
+  };
+
+  fetch("https://localhost/EBEN/api/updateTaskStatus.php", {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(updateData)
+  })
+    .then(response => response.json())
+    .then(result => {
+      if (result.success) {
+        currentTask.status = 'aguardando_retorno';
+
+        const modal = bootstrap.Modal.getInstance(document.getElementById('taskDetailModal'));
+        if (modal) modal.hide();
+
+        loadTaskList();
+        console.log(currentTask);
+      } else {
+        alert('Erro ao concluir atendimento: ' + (result.message || 'Erro desconhecido'));
+      }
+    })
+    .catch(error => {
+      console.error('Erro ao concluir atendimento:', error);
+      alert('Erro ao concluir atendimento. Tente novamente.');
+    });
 }

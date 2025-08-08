@@ -774,76 +774,109 @@ function showLocationOnMap(lat, lng, title) {
 async function exportIndividualTaskToPDF(taskId) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
+  const payload = { id: taskId };
+  fetch("https://localhost/EBEN/api/relatoryid.php", {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+    
+  })
+    .then(response => response.json())
+    .then(data => {
+    console.log(data)
+    const task = data.task;
+    const company = data.company;
+    const employee = data.employee;
+    
+    // Funções auxiliares para cálculos de tempo
+    function timeToMinutes(timeStr) {
+      if (!timeStr) return 0;
+      const [hours, minutes] = timeStr.split(':').map(Number);
+      return hours * 60 + minutes;
+    }
+    
+    function minutesToHHMM(minutes) {
+      const h = Math.floor(minutes / 60).toString().padStart(2, '0');
+      const m = (minutes % 60).toString().padStart(2, '0');
+      return `${h}:${m}`;
+    }
 
-  const task = window.dataService.getById(window.dataService.DATA_TYPES.TASKS, taskId);
-  if (!task) return;
+    // Header
+    doc.setFontSize(18);
+    doc.text('RELATÓRIO INDIVIDUAL DE TAREFA', 20, 20);
+    doc.setFontSize(12);
+    doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}`, 20, 30);
 
-  const companies = window.dataService.getAll(window.dataService.DATA_TYPES.COMPANIES);
-  const employees = window.dataService.getAll(window.dataService.DATA_TYPES.EMPLOYEES);
-
-  const company = companies.find(c => c.id === task.empresaId);
-  const employee = employees.find(e => e.id === task.colaboradorId);
-
-  // Header
-  doc.setFontSize(18);
-  doc.text('RELATÓRIO INDIVIDUAL DE TAREFA', 20, 20);
-
-  doc.setFontSize(12);
-  doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}`, 20, 30);
-
-  // Basic Information
-  let yPos = 45;
-  doc.setFontSize(14);
-  doc.text('INFORMAÇÕES BÁSICAS', 20, yPos);
-  yPos += 10;
-
-  doc.setFontSize(10);
-  doc.text(`Empresa: ${task.empresaNome}`, 20, yPos);
-  yPos += 5;
-  doc.text(`Técnico: ${employee ? employee.nome : 'N/A'}`, 20, yPos);
-  yPos += 5;
-  if (task.responsavel) {
-    doc.text(`Responsável no Local: ${task.responsavel}`, 20, yPos);
-    yPos += 5;
-  }
-  doc.text(`Data: ${task.data} - ${task.hora}`, 20, yPos);
-  yPos += 5;
-  doc.text(`Status: ${getStatusText(task.status)}`, 20, yPos);
-  yPos += 5;
-  if (task.tempoSugerido) {
-    doc.text(`Tempo Sugerido: ${task.tempoSugerido}h`, 20, yPos);
-    yPos += 5;
-  }
-  doc.text(`Descrição: ${task.descricao}`, 20, yPos);
-  yPos += 15;
-
-  // Performance Analysis (if completed)
-  if ((task.status === 'concluida' || task.status === 'aguardando_retorno' || task.status === 'finalizada') && task.tempoSugerido && task.report?.workTime) {
-    const actualHours = HHMMSSToDecimal(task.report.workTime);
-    const efficiency = Math.round((task.tempoSugerido / actualHours) * 100);
-
-    // Format times for display
-    const suggestedTimeHHMM = decimalToHHMM(task.tempoSugerido);
-    const actualTimeHHMM = formatTimeToHHMM(task.report.workTime);
-    const difference = actualHours - task.tempoSugerido;
-    const isOverTime = difference > 0;
-    const diffTimeHHMM = decimalToHHMM(Math.abs(difference));
-
+    // Informações Básicas
+    let yPos = 45;
     doc.setFontSize(14);
-    doc.text('ANÁLISE DE PERFORMANCE', 20, yPos);
+    doc.text('INFORMAÇÕES BÁSICAS', 20, yPos);
     yPos += 10;
 
     doc.setFontSize(10);
-    doc.text(`Tempo Sugerido: ${suggestedTimeHHMM}`, 20, yPos);
+    doc.text(`Empresa: ${company.nome}`, 20, yPos);
     yPos += 5;
-    doc.text(`Tempo Executado: ${actualTimeHHMM}`, 20, yPos);
+    doc.text(`Técnico: ${employee.nome}`, 20, yPos);
     yPos += 5;
-    doc.text(`Eficiência: ${efficiency}%`, 20, yPos);
+    
+    if (task.responsavel) {
+      doc.text(`Responsável no Local: ${task.responsavel}`, 20, yPos);
+      yPos += 5;
+    }
+    
+    // Formata data e hora
+    const taskDate = new Date(task.data_tarefa).toLocaleDateString('pt-BR');
+    doc.text(`Data: ${taskDate} - ${task.hora_tarefa.substring(0,5)}`, 20, yPos);
     yPos += 5;
-    doc.text(`Diferença: ${isOverTime ? '+' : ''}${diffTimeHHMM}`, 20, yPos);
+    
+    doc.text(`Status: ${getStatusText(task.status)}`, 20, yPos);
+    yPos += 5;
+    
+    if (task.tempo_sugerido) {
+      const tempo = task.tempo_sugerido.substring(0, 5);
+      doc.text(`Tempo Sugerido: ${tempo}h`, 20, yPos);
+      yPos += 5;
+    }
+    
+    doc.text(`Descrição: ${task.descricao || 'Nenhuma'}`, 20, yPos);
     yPos += 15;
-  }
 
+    // Seção de Performance (apenas para tarefas concluídas)
+    if (task.status === 'concluida' && task.tempo_sugerido && task.workTime) {
+      // Conversão para minutos
+      const suggestedMinutes = timeToMinutes(task.tempo_sugerido);
+      const executedMinutes = timeToMinutes(task.workTime);
+      
+      // Cálculos
+      const efficiency = executedMinutes > 0 
+        ? Math.round((suggestedMinutes / executedMinutes) * 100)
+        : 0;
+      
+      const difference = executedMinutes - suggestedMinutes;
+      const diffSign = difference >= 0 ? '+' : '-';
+      const absDifference = Math.abs(difference);
+      
+      doc.setFontSize(14);
+      doc.text('ANÁLISE DE PERFORMANCE', 20, yPos);
+      yPos += 10;
+
+      doc.setFontSize(10);
+      doc.text(`Tempo Sugerido: ${task.tempo_sugerido.substring(0,5)}`, 20, yPos);
+      yPos += 5;
+      doc.text(`Tempo Executado: ${task.workTime.substring(0,5)}`, 20, yPos);
+      yPos += 5;
+      doc.text(`Eficiência: ${efficiency}%`, 20, yPos);
+      yPos += 5;
+      doc.text(`Diferença: ${diffSign}${minutesToHHMM(absDifference)}`, 20, yPos);
+      yPos += 15;
+    }
+
+    doc.save(`relatorio-tarefa-${task.id}-${new Date().toISOString().split('T')[0]}.pdf`);
+  }).catch(error => {
+    console.error('Erro na consulta:', error);
+    alert('Erro ao gerar relatório: ' + error.message);
+  });
+  /*
   // History with observations and pause reasons
   if (task.history && task.history.length > 0) {
     doc.setFontSize(14);
@@ -968,12 +1001,132 @@ async function exportIndividualTaskToPDF(taskId) {
       }
     }
   }
+    */
 
   // Save the PDF
-  doc.save(`relatorio-tarefa-${task.id}-${new Date().toISOString().split('T')[0]}.pdf`);
+ // doc.save(`relatorio-tarefa-${task.id}-${new Date().toISOString().split('T')[0]}.pdf`);
 }
 
+async function exportToPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  fetch("https://localhost/EBEN/api/relatory.php", {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  })
+    .then(response => response.json())
+    .then(response => {
+      console.log('Resposta da API:', response);
+
+      const tasks = response.tarefas;
+      const formularios = response.formularios;
+
+      if (!Array.isArray(tasks)) {
+        console.error("A propriedade 'tarefas' não é um array:", tasks);
+        return;
+      }
+
+      doc.setFontSize(20);
+      doc.text('Relatório de Tarefas', 20, 20);
+      doc.setFontSize(12);
+      doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, 20, 35);
+
+      let yPosition = 50;
+
+      tasks.forEach((task, index) => {
+        if (yPosition > 250) {
+          doc.addPage();
+          yPosition = 20;
+        }
+
+        doc.setFontSize(14);
+        doc.text(`${index + 1}. ${task.empresa}`, 20, yPosition);
+        yPosition += 10;
+
+        doc.setFontSize(10);
+        doc.text(`Técnico: ${task.tecnico}`, 25, yPosition); yPosition += 5;
+        doc.text(`Data: ${task.data_hora}`, 25, yPosition); yPosition += 5;
+        doc.text(`Status: ${getStatusText(task.status)}`, 25, yPosition); yPosition += 5;
+
+        if (task.responsavel) {
+          doc.text(`Responsável: ${task.responsavel}`, 25, yPosition); yPosition += 5;
+        }
+
+        if (task.tempo_sugerido) {
+          doc.text(`Tempo Sugerido: ${task.tempo_sugerido}`, 25, yPosition); yPosition += 5;
+        }
+
+        if (task.tempo_executado) {
+          doc.text(`Tempo Executado: ${task.tempo_executado}`, 25, yPosition); yPosition += 5;
+        }
+
+        const description = task.descricao.length > 80
+          ? task.descricao.substring(0, 80) + '...'
+          : task.descricao;
+        doc.text(`Descrição: ${description}`, 25, yPosition); yPosition += 10;
+
+        // Formulários relacionados à tarefa
+        formularios.forEach(formulario => {
+          formulario.respostas.forEach(resposta => {
+            
+            if (resposta.task_id == task.id) {
+              doc.setFontSize(11);
+              doc.text(`Formulário: ${formulario.titulo} (${resposta.respondido_em})`, 25, yPosition);
+              yPosition += 6;
+
+              resposta.perguntas.forEach(p => {
+                if (yPosition > 250) {
+                  doc.addPage();
+                  yPosition = 20;
+                }
+
+                const pergunta = `• ${p.pergunta}`;
+                const respostaTexto = `${p.resposta}`;
+
+                doc.setFontSize(10);
+                doc.text(pergunta, 30, yPosition);
+                yPosition += 5;
+
+                doc.setFont("helvetica", "italic");
+                doc.text(respostaTexto, 35, yPosition);
+                doc.setFont("helvetica", "normal");
+                yPosition += 6;
+              });
+
+              yPosition += 5;
+            }
+          });
+        });
+      });
+
+      doc.save(`relatorio-tarefas-${new Date().toISOString().split('T')[0]}.pdf`);
+    })
+    .catch(error => {
+      console.error('Erro na consulta:', error);
+    });
+}
+
+
+function getStatusText(status) {
+  switch (status) {
+    case 'em_andamento': return 'Em andamento';
+    case 'concluida': return 'Concluída';
+    case 'pendente': return 'Pendente';
+    case 'cancelada': return 'Cancelada';
+    default: return status;
+  }
+}
+
+
+
+
+
+
+/*
 function exportToPDF() {
+  
+  
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
 
@@ -1038,6 +1191,7 @@ function exportToPDF() {
       task.descricao.substring(0, 80) + '...' : task.descricao;
     doc.text(`Descrição: ${description}`, 25, yPosition);
     yPosition += 10;
+    
 
     // Form responses if available
     if (task.formularioResposta?.answers) {
@@ -1074,12 +1228,14 @@ function exportToPDF() {
     }
 
     yPosition += 5; // Space between tasks
+    
   });
 
   // Save the PDF
   doc.save(`relatorio-tarefas-${new Date().toISOString().split('T')[0]}.pdf`);
+  
 }
-
+*/
 // Delete task
 function deleteTask(taskId) {
   const confirmDelete = confirm("Tem certeza que deseja deletar esta tarefa? Esta ação não pode ser desfeita.");

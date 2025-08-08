@@ -1,26 +1,12 @@
 //user-form-HandPlatter.js
 // Form handling for user tasks
-function showTaskFormModal(taskId, formularioId) {
+function showTaskFormModal(taskId) {
     console.log('Opening form modal for task:', taskId);
-
-  // Se a tarefa não tem formulário, redireciona para observações
-  if (!formularioId) {
-    console.log('No form found for task:', taskId);
-    showObservationsModal((observations) => {
-      if (observations !== null) {
-        getCurrentLocation((coords) => {
-          completeTaskDirectly(taskId, coords, observations);
-        });
-      }
-    });
-    return;
-  }
-
   // Buscar os dados do formulário no backend
-  fetch("https://localhost/EBEN/api/showformdescription.php", {
+  fetch("https://localhost/EBEN/api/formdescription.php", {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id: formularioId })
+    body: JSON.stringify({ id: taskId })
   })
     .then(response => response.json())
     .then(form => {
@@ -176,6 +162,92 @@ function completeTaskDirectly(taskId, coordinates, observations = 'Tarefa finali
   }
 }
 
+function saveTaskFormAnswers(taskId, form, modal) {
+  
+  console.log('Saving task form answers for task:', taskId);
+
+  const formData = new FormData(document.getElementById('taskFormAnswers'));
+  const answers = [];
+  let validationError = false;
+
+  form.perguntas.forEach(question => {
+    const fieldName = `question_${question.id_pergunta}`;
+    let answer = null;
+
+    switch (question.tipo) {
+      case 'text':
+      case 'textarea':
+      case 'radio':
+        answer = formData.get(fieldName);
+        break;
+      case 'checkbox':
+        const checkboxValues = formData.getAll(fieldName);
+        answer = checkboxValues.length > 0 ? checkboxValues : null;
+        break;
+    }
+
+    if (question.obrigatoria === '1') {
+      if (!answer || (Array.isArray(answer) && answer.length === 0)) {
+        alert(`Por favor, responda a pergunta obrigatória: ${question.texto}`);
+        validationError = true;
+        return;
+      }
+    }
+
+    answers.push({
+      questionId: question.id_pergunta,
+      questionText: question.texto,
+      questionType: question.tipo,
+      answer: answer
+    });
+  });
+
+  console.log(answers)
+
+  if (validationError) return;
+
+  const payload = {
+    taskId: taskId,
+    status: 'aguardando_retorno',
+    completedAt: new Date().toISOString(),
+    formResponse: {
+      formId: form.id_formulario,
+      formName: form.titulo_formulario,
+      answers: answers
+    },
+    coordinates: null // ou atualize com geolocalização se disponível
+  };
+
+  fetch("https://localhost/EBEN/api/salvar-respostas-e-atualizar-tarefa.php", {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+  .then(response => response.json())
+  .then(result => {
+    if (result.success) {
+      modal.hide();
+      document.getElementById('taskFormModal').remove();
+
+      const taskDetailModal = bootstrap.Modal.getInstance(document.getElementById('taskDetailModal'));
+      if (taskDetailModal) taskDetailModal.hide();
+
+      showToast('Tarefa concluída com sucesso!', 'success');
+
+      if (typeof loadTaskList === 'function') loadTaskList();
+      else if (typeof loadUserTasks === 'function') loadUserTasks();
+      if (typeof updateMapMarkers === 'function') updateMapMarkers();
+    } else {
+      showToast('Erro ao salvar respostas e atualizar tarefa.', 'danger');
+      console.error(result.message);
+    }
+  })
+  .catch(error => {
+    console.error('Erro na requisição:', error);
+    showToast('Erro ao salvar os dados da tarefa.', 'danger');
+  });
+}
+
 function getCurrentLocation(callback) {
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(
@@ -184,17 +256,16 @@ function getCurrentLocation(callback) {
         callback(coords);
       },
       function (error) {
-        console.error('Error getting location:', error);
-        // Use default coordinates (Parnaíba, PI)
-        callback('-41.7734,-2.9055');
+        console.error('Erro ao obter localização:', error);
+        callback('-41.7734,-2.9055'); // fallback para Parnaíba-PI
       }
     );
   } else {
-    console.log('Geolocation is not supported by this browser.');
-    // Use default coordinates
-    callback('-41.7734,-2.9055');
+    console.warn('Geolocalização não suportada pelo navegador.');
+    callback('-41.7734,-2.9055'); // fallback
   }
 }
+
 
 function showObservationsModal(callback, title = 'Observações Finais', placeholder = 'Descreva como foi a execução da tarefa, problemas encontrados, etc.') {
   const modalHtml = `
@@ -291,81 +362,7 @@ function generateFormQuestions(questions) {
   }).join('');
 }
 
-function saveTaskFormAnswers(taskId, form, modal) {
-  console.log('Saving task form answers for task:', taskId);
-  const formData = new FormData(document.getElementById('taskFormAnswers'));
-  const answers = [];
-  let validationError = false;
 
-  form.questions.forEach(question => {
-    const fieldName = `question_${question.id}`;
-    let answer = null;
-
-    switch (question.type) {
-      case 'text':
-      case 'textarea':
-      case 'radio':
-        answer = formData.get(fieldName);
-        break;
-      case 'checkbox':
-        const checkboxValues = formData.getAll(fieldName);
-        answer = checkboxValues.length > 0 ? checkboxValues : null;
-        break;
-    }
-
-    // Validação de campos obrigatórios
-    if (question.required) {
-      if (!answer || (Array.isArray(answer) && answer.length === 0)) {
-        alert(`Por favor, responda a pergunta obrigatória: ${question.text}`);
-        validationError = true;
-        return;
-      }
-    }
-
-    answers.push({
-      questionId: question.id,
-      questionText: question.text,
-      questionType: question.type,
-      answer: answer
-    });
-  });
-
-  if (validationError) return;
-
-  // Atualizar a tarefa com as respostas e mudar status
-  const task = window.dataService.getById(window.dataService.DATA_TYPES.TASKS, taskId);
-  if (task) {
-    const updates = {
-      status: 'aguardando_retorno', // Alterado de 'concluida'
-      formularioResposta: {
-        formId: form.id,
-        formName: form.name,
-        answers: answers,
-        completedAt: new Date().toISOString()
-      },
-      coordinates: task.coordinates
-    };
-
-    window.dataService.update(window.dataService.DATA_TYPES.TASKS, taskId, updates);
-
-    // Fechar e remover modal completamente
-    modal.hide();
-    document.getElementById('taskFormModal').remove();
-
-    // Fechar modal de detalhes da tarefa e atualizar interface
-    const taskDetailModal = bootstrap.Modal.getInstance(document.getElementById('taskDetailModal'));
-    if (taskDetailModal) taskDetailModal.hide();
-
-    // Atualizar interface
-    showToast('Tarefa concluída com sucesso!', 'success');
-    if (typeof loadTaskList === 'function') {
-      loadTaskList();
-    } else if (typeof loadUserTasks === 'function') {
-      loadUserTasks();
-    }
-    if (typeof updateMapMarkers === 'function') updateMapMarkers();
-  }
-}
 
 function showToast(message, type) {
   // Simple toast implementation
