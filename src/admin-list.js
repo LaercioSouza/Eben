@@ -775,30 +775,40 @@ async function exportIndividualTaskToPDF(taskId) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
   const payload = { id: taskId };
+  
   fetch("https://localhost/EBEN/api/relatoryid.php", {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
-    
   })
-    .then(response => response.json())
-    .then(data => {
-    console.log(data)
+  .then(response => response.json())
+  .then(data => {
+    console.log(data);
     const task = data.task;
     const company = data.company;
     const employee = data.employee;
-    
-    // Funções auxiliares para cálculos de tempo
-    function timeToMinutes(timeStr) {
+    const history = data.history; // Novo histórico
+    const formResponses = data.formResponses; // Novos formulários
+
+
+    // Funções auxiliares (mantidas do código original)
+    function parseTimeToSeconds(timeStr) {
       if (!timeStr) return 0;
-      const [hours, minutes] = timeStr.split(':').map(Number);
-      return hours * 60 + minutes;
+      const parts = timeStr.split(':').map(Number);
+      const hours = parts[0] || 0;
+      const minutes = parts[1] || 0;
+      const seconds = parts[2] || 0;
+      return hours * 3600 + minutes * 60 + seconds;
     }
-    
-    function minutesToHHMM(minutes) {
-      const h = Math.floor(minutes / 60).toString().padStart(2, '0');
-      const m = (minutes % 60).toString().padStart(2, '0');
-      return `${h}:${m}`;
+
+    function secondsToHHMMSS(totalSeconds) {
+      const sign = totalSeconds < 0 ? '-' : '';
+      let s = Math.abs(Math.round(totalSeconds));
+      const h = Math.floor(s / 3600);
+      s = s % 3600;
+      const m = Math.floor(s / 60);
+      const sec = s % 60;
+      return `${sign}${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
     }
 
     // Header
@@ -824,7 +834,6 @@ async function exportIndividualTaskToPDF(taskId) {
       yPos += 5;
     }
     
-    // Formata data e hora
     const taskDate = new Date(task.data_tarefa).toLocaleDateString('pt-BR');
     doc.text(`Data: ${taskDate} - ${task.hora_tarefa.substring(0,5)}`, 20, yPos);
     yPos += 5;
@@ -841,87 +850,167 @@ async function exportIndividualTaskToPDF(taskId) {
     doc.text(`Descrição: ${task.descricao || 'Nenhuma'}`, 20, yPos);
     yPos += 15;
 
-    // Seção de Performance (apenas para tarefas concluídas)
+    // Performance
     if (task.status === 'concluida' && task.tempo_sugerido && task.workTime) {
-      // Conversão para minutos
-      const suggestedMinutes = timeToMinutes(task.tempo_sugerido);
-      const executedMinutes = timeToMinutes(task.workTime);
-      
-      // Cálculos
-      const efficiency = executedMinutes > 0 
-        ? Math.round((suggestedMinutes / executedMinutes) * 100)
-        : 0;
-      
-      const difference = executedMinutes - suggestedMinutes;
-      const diffSign = difference >= 0 ? '+' : '-';
-      const absDifference = Math.abs(difference);
-      
+      const suggestedSec = parseTimeToSeconds(task.tempo_sugerido);
+      const executedSec = parseTimeToSeconds(task.workTime);
+      const efficiency = executedSec > 0 ? Math.round((suggestedSec / executedSec) * 100) : 0;
+      const diffSec = executedSec - suggestedSec;
+
       doc.setFontSize(14);
       doc.text('ANÁLISE DE PERFORMANCE', 20, yPos);
       yPos += 10;
 
       doc.setFontSize(10);
-      doc.text(`Tempo Sugerido: ${task.tempo_sugerido.substring(0,5)}`, 20, yPos);
+      doc.text(`Tempo Sugerido: ${secondsToHHMMSS(suggestedSec)}`, 20, yPos);
       yPos += 5;
-      doc.text(`Tempo Executado: ${task.workTime.substring(0,5)}`, 20, yPos);
+      doc.text(`Tempo Executado: ${secondsToHHMMSS(executedSec)}`, 20, yPos);
       yPos += 5;
       doc.text(`Eficiência: ${efficiency}%`, 20, yPos);
       yPos += 5;
-      doc.text(`Diferença: ${diffSign}${minutesToHHMM(absDifference)}`, 20, yPos);
+      doc.text(`Diferença: ${secondsToHHMMSS(diffSec)}`, 20, yPos);
       yPos += 15;
     }
 
-    doc.save(`relatorio-tarefa-${task.id}-${new Date().toISOString().split('T')[0]}.pdf`);
-  }).catch(error => {
-    console.error('Erro na consulta:', error);
-    alert('Erro ao gerar relatório: ' + error.message);
-  });
-  /*
-  // History with observations and pause reasons
-  if (task.history && task.history.length > 0) {
-    doc.setFontSize(14);
-    doc.text('HISTÓRICO DE MOVIMENTOS', 20, yPos);
-    yPos += 10;
+    // Histórico de Movimentos
+    if (history && history.length > 0) {
+      doc.setFontSize(14);
+      doc.text('HISTÓRICO DE MOVIMENTOS', 20, yPos);
+      yPos += 10;
 
-    for (let i = 0; i < task.history.length; i++) {
-      if (yPos > 250) {
+      for (let i = 0; i < history.length; i++) {
+        // Quebra de página se necessário
+        if (yPos > 250) {
+          doc.addPage();
+          yPos = 20;
+        }
+
+        const entry = history[i];
+        const date = new Date(entry.timestamp);
+        const formattedDateTime = `${date.toLocaleDateString('pt-BR')} ${date.toLocaleTimeString('pt-BR')}`;
+
+        doc.setFontSize(10);
+        doc.text(`${i + 1}. ${getActionText(entry.action)}`, 20, yPos);
+        yPos += 5;
+        doc.text(`   Data/Hora: ${formattedDateTime}`, 25, yPos);
+        yPos += 5;
+
+        if (entry.coordinates) {
+          const coords = entry.coordinates.split(',');
+          doc.text(`   Coordenadas: Lat ${parseFloat(coords[1]).toFixed(6)}, Lng ${parseFloat(coords[0]).toFixed(6)}`, 25, yPos);
+          yPos += 5;
+        }
+
+        if (entry.observations) {
+          const obsLines = doc.splitTextToSize(`   Observações: ${entry.observations}`, 160);
+          obsLines.forEach(line => {
+            doc.text(line, 25, yPos);
+            yPos += 5;
+          });
+        }
+
+        if (entry.reason) {
+          const reasonLines = doc.splitTextToSize(`   Motivo: ${entry.reason}`, 160);
+          reasonLines.forEach(line => {
+            doc.text(line, 25, yPos);
+            yPos += 5;
+          });
+        }
+
+        yPos += 5; // Espaço entre itens
+      }
+    }
+    if (formResponses && formResponses.length > 0) {
+      // Quebra de página se necessário
+      if (yPos > 200) {
         doc.addPage();
         yPos = 20;
       }
 
-      const entry = task.history[i];
-      const date = new Date(entry.timestamp);
-      const formattedDateTime = `${date.toLocaleDateString('pt-BR')} ${date.toLocaleTimeString('pt-BR')}`;
+      // Percorre cada formulário respondido
+      for (const form of formResponses) {
+        doc.setFontSize(14);
+        doc.text('FORMULÁRIO RESPONDIDO', 20, yPos);
+        yPos += 10;
 
-      doc.setFontSize(10);
-      doc.text(`${i + 1}. ${getActionText(entry.action)}`, 20, yPos);
-      yPos += 5;
-      doc.text(`   Data/Hora: ${formattedDateTime}`, 25, yPos);
-      yPos += 5;
+        doc.setFontSize(10);
+        doc.text(`Formulário: ${form.form_titulo} (${form.respondido_em})`, 20, yPos);
+        yPos += 10;
 
-      if (entry.coordinates) {
-        const coords = entry.coordinates.split(',');
-        doc.text(`   Coordenadas: Lat ${parseFloat(coords[1]).toFixed(6)}, Lng ${parseFloat(coords[0]).toFixed(6)}`, 25, yPos);
-        yPos += 5;
+        // Percorre cada pergunta/resposta
+        for (const answer of form.answers) {
+          // Quebra de página se necessário
+          if (yPos > 250) {
+            doc.addPage();
+            yPos = 20;
+          }
+
+          let answerText = answer.answer;
+          if (Array.isArray(answerText)) {
+            answerText = answerText.join(', ');
+          }
+
+          // Quebra texto longo para múltiplas linhas
+          const questionLines = doc.splitTextToSize(` ${answer.questionText}`, 170);
+          const answerLines = doc.splitTextToSize(` ${answerText || 'Sem resposta'}`, 160);
+
+          // Pergunta
+          questionLines.forEach(line => {
+            doc.text(line, 20, yPos);
+            yPos += 5;
+          });
+
+          // Resposta
+          answerLines.forEach(line => {
+            doc.text(line, 25, yPos);
+            yPos += 5;
+          });
+
+          yPos += 5; // Espaço entre perguntas
+        }
+        
+        yPos += 10; // Espaço entre formulários
       }
-
-      if (entry.observations) {
-        const obsText = entry.observations.length > 80 ?
-          entry.observations.substring(0, 80) + '...' : entry.observations;
-        doc.text(`   Observações: ${obsText}`, 25, yPos);
-        yPos += 5;
-      }
-
-      if (entry.reason) {
-        const reasonText = entry.reason.length > 80 ?
-          entry.reason.substring(0, 80) + '...' : entry.reason;
-        doc.text(`   Motivo: ${reasonText}`, 25, yPos);
-        yPos += 5;
-      }
-
-      yPos += 5;
     }
+
+    doc.save(`relatorio-tarefa-${task.id}-${new Date().toISOString().split('T')[0]}.pdf`);
+    
+    
+  })
+  .catch(error => {
+    console.error('Erro:', error);
+    alert('Erro ao gerar relatório: ' + error.message);
+  });
+
+  function getStatusText(status) {
+    const statusMap = {
+      'agendada': 'Agendada',
+      'concluida': 'Concluída',
+      'cancelada': 'Cancelada',
+      'em_andamento': 'Em Andamento',
+      'pausada': 'Pausada'
+    };
+    return statusMap[status] || status;
   }
+
+  function getActionText(action) {
+    const actionMap = {
+      'criado': 'Tarefa Criada',
+      'inicio_translado': 'Iniciou Translado',
+      'fim_translado': 'Encerrou Translado',
+      'inicio_tarefa': 'Tarefa Iniciada',
+      'conclusao_tarefa': 'Tarefa Concluída',
+      'inicio_retorno': 'Iniciou Retorno',
+      'fim_retorno': 'Encerrou Retorno',
+      'finalizada': 'Tarefa Finalizada',
+      'pausa': 'Tarefa Pausada',
+      'retomada': 'Tarefa Retomada'
+    };
+    return actionMap[action] || action;
+  }
+}
+
+    /*
 
   // Form Responses
   if (task.formularioResposta?.answers) {
@@ -1005,7 +1094,7 @@ async function exportIndividualTaskToPDF(taskId) {
 
   // Save the PDF
  // doc.save(`relatorio-tarefa-${task.id}-${new Date().toISOString().split('T')[0]}.pdf`);
-}
+
 
 async function exportToPDF() {
   const { jsPDF } = window.jspdf;
@@ -1118,124 +1207,6 @@ function getStatusText(status) {
   }
 }
 
-
-
-
-
-
-/*
-function exportToPDF() {
-  
-  
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-
-  // Get all tasks
-  const tasks = window.dataService.getAll(window.dataService.DATA_TYPES.TASKS);
-  const companies = window.dataService.getAll(window.dataService.DATA_TYPES.COMPANIES);
-  const employees = window.dataService.getAll(window.dataService.DATA_TYPES.EMPLOYEES);
-
-  // Title
-  doc.setFontSize(20);
-  doc.text('Relatório de Tarefas', 20, 20);
-
-  // Date
-  doc.setFontSize(12);
-  doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, 20, 35);
-
-  let yPosition = 50;
-
-  tasks.forEach((task, index) => {
-    if (yPosition > 250) {
-      doc.addPage();
-      yPosition = 20;
-    }
-
-    const company = companies.find(c => c.id === task.empresaId);
-    const employee = employees.find(e => e.id === task.colaboradorId);
-
-    // Task header
-    doc.setFontSize(14);
-    doc.text(`${index + 1}. ${task.empresaNome}`, 20, yPosition);
-    yPosition += 10;
-
-    // Task details
-    doc.setFontSize(10);
-    doc.text(`Técnico: ${employee ? employee.nome : 'N/A'}`, 25, yPosition);
-    yPosition += 5;
-    doc.text(`Data: ${task.data} - ${task.hora}`, 25, yPosition);
-    yPosition += 5;
-    doc.text(`Status: ${getStatusText(task.status)}`, 25, yPosition);
-    yPosition += 5;
-
-    if (task.responsavel) {
-      doc.text(`Responsável: ${task.responsavel}`, 25, yPosition);
-      yPosition += 5;
-    }
-
-    if (task.tempoSugerido) {
-      const suggestedTimeHHMM = decimalToHHMM(task.tempoSugerido);
-      doc.text(`Tempo Sugerido: ${suggestedTimeHHMM}`, 25, yPosition);
-      yPosition += 5;
-    }
-
-    // Work time if completed
-    if (task.report?.workTime) {
-      const workTimeHHMM = formatTimeToHHMM(task.report.workTime);
-      doc.text(`Tempo Executado: ${workTimeHHMM}`, 25, yPosition);
-      yPosition += 5;
-    }
-
-    // Description (truncated if too long)
-    const description = task.descricao.length > 80 ?
-      task.descricao.substring(0, 80) + '...' : task.descricao;
-    doc.text(`Descrição: ${description}`, 25, yPosition);
-    yPosition += 10;
-    
-
-    // Form responses if available
-    if (task.formularioResposta?.answers) {
-      doc.text('Respostas do Formulário:', 25, yPosition);
-      yPosition += 5;
-
-      task.formularioResposta.answers.forEach(answer => {
-        if (yPosition > 250) {
-          doc.addPage();
-          yPosition = 20;
-        }
-
-        let answerText = answer.answer;
-        if (Array.isArray(answerText)) {
-          answerText = answerText.join(', ');
-        }
-
-        const questionText = answer.questionText.length > 40 ?
-          answer.questionText.substring(0, 40) + '...' : answer.questionText;
-        const responseText = answerText && answerText.length > 40 ?
-          answerText.substring(0, 40) + '...' : answerText;
-
-        doc.text(`  • ${questionText}: ${responseText || 'Não respondido'}`, 30, yPosition);
-        yPosition += 5;
-      });
-    }
-
-    // Cancel information if applicable
-    if (task.status === 'cancelada' && task.cancellation) {
-      doc.text('Motivo de Cancelamento:', 25, yPosition);
-      yPosition += 5;
-      doc.text(`  • ${task.cancellation.reason || 'Sem motivo informado'}`, 30, yPosition);
-      yPosition += 5;
-    }
-
-    yPosition += 5; // Space between tasks
-    
-  });
-
-  // Save the PDF
-  doc.save(`relatorio-tarefas-${new Date().toISOString().split('T')[0]}.pdf`);
-  
-}
-*/
 // Delete task
 function deleteTask(taskId) {
   const confirmDelete = confirm("Tem certeza que deseja deletar esta tarefa? Esta ação não pode ser desfeita.");

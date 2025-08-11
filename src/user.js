@@ -1443,40 +1443,61 @@ function capturePhoto() {
   canvas.height = video.videoHeight;
   const ctx = canvas.getContext('2d');
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  
   return canvas.toDataURL('image/jpeg');
 }
 
-function cancelTask() {
-  const reason = document.getElementById('cancel-reason').value;
-  if (!reason) {
-    alert('Por favor, informe o motivo do cancelamento.');
-    return;
-  }
+  function cancelTask() {
+    const reason = document.getElementById('cancel-reason').value;
+    if (!reason) {
+        alert('Por favor, informe o motivo do cancelamento.');
+        return;
+    }
 
-  const photoData = capturePhoto();
-  stopCamera();
+    const photoData = capturePhoto(); // Base64 da foto
+    stopCamera();
 
-  // Atualizar a tarefa via dataService
-  const updatedTask = window.dataService.cancelTask(
-    currentCancellationTask.id,
-    reason,
-    photoData,
-    currentCoordinates
-  );
+    const endTime = getLocalISOString();
 
-  if (updatedTask) {
-    // Fechar modais
-    const cancelModal = bootstrap.Modal.getInstance(document.getElementById('cancelTaskModal'));
-    if (cancelModal) cancelModal.hide();
+  // Dados para enviar à API
+    const updateData = {
+    taskId: currentTask.id,
+    newStatus: 'cancelada',
+    endTime: endTime,
+    coordinates: currentCoordinates,
+    Reason: reason,
+    photo: photoData
+  };
 
-    const taskModal = bootstrap.Modal.getInstance(document.getElementById('taskDetailModal'));
-    if (taskModal) taskModal.hide();
 
-    // Recarregar lista de tarefas
-    loadTaskList();
-    alert('Tarefa cancelada com sucesso!');
-  }
+    fetch("https://localhost/EBEN/api/cancel_task.php", {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(updateData)
+    })
+    .then(res => res.json())
+    .then(data => {
+        console.log(data)
+        if (data.success) {
+            // Fecha modais
+            const cancelModal = bootstrap.Modal.getInstance(document.getElementById('cancelTaskModal'));
+            if (cancelModal) cancelModal.hide();
+            const taskModal = bootstrap.Modal.getInstance(document.getElementById('taskDetailModal'));
+            if (taskModal) taskModal.hide();
+
+            loadTaskList();
+            
+        } else {
+            alert("Erro: " + data.message);
+        }
+    })
+    .catch(err => console.error(err));
 }
+
+  
+
 function showTaskFormModal(taskId, form) {
     console.log('Opening form modal for task:', taskId);
   /*
