@@ -29,13 +29,17 @@ if (!isset($data['id'])) {
 $taskId = $data['id'];
 
 try {
-    // Busca dados principais da tarefa
+    // Busca dados principais da tarefa (incluindo campos de cancelamento)
     $stmt = $pdo->prepare("
         SELECT 
             t.*,
             c.nome AS company_nome,
             e.nome AS employee_nome,
-            TIME_FORMAT(t.workTime, '%H:%i:%s') AS workTime
+            TIME_FORMAT(t.workTime, '%H:%i:%s') AS workTime,
+            t.cancellation_timestamp,
+            t.cancellation_reason,
+            t.cancellation_coordinates,
+            t.cancellation_photo
         FROM task t
         JOIN companies c ON t.empresa_id = c.id
         JOIN employees e ON t.colaborador_id = e.id
@@ -132,6 +136,20 @@ try {
     // Converte para array indexado
     $formResponsesArray = array_values($formResponses);
 
+    // Monta os dados de cancelamento
+    $cancellationInfo = null;
+    if (strtolower(trim($task['status'])) === 'cancelada') {
+         $cancellationInfo = [
+        'timestamp' => $task['cancellation_timestamp'],
+        'reason' => $task['cancellation_reason'],
+        'coordinates' => $task['cancellation_coordinates'],
+        'photo' => $task['cancellation_photo'] 
+            ? "../api/uploads/cancellations/{$task['cancellation_photo']}" 
+            : null
+    ];
+}
+
+
     $response = [
         'company' => ['nome' => $task['company_nome']],
         'employee' => ['nome' => $task['employee_nome']],
@@ -143,7 +161,8 @@ try {
             'hora_tarefa' => $task['hora_tarefa'],
             'descricao' => $task['descricao'],
             'status' => $task['status'],
-            'workTime' => $task['workTime']
+            'workTime' => $task['workTime'],
+            'cancellation' => $cancellationInfo // Adiciona informações de cancelamento
         ],
         'history' => $history,
         'formResponses' => $formResponsesArray

@@ -1444,6 +1444,7 @@ function capturePhoto() {
   const ctx = canvas.getContext('2d');
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
   
+  
   return canvas.toDataURL('image/jpeg');
 }
 
@@ -1465,9 +1466,10 @@ function capturePhoto() {
     newStatus: 'cancelada',
     endTime: endTime,
     coordinates: currentCoordinates,
-    Reason: reason,
+    reason: reason, // <-- minúsculo
     photo: photoData
-  };
+};
+
 
 
     fetch("https://localhost/EBEN/api/cancel_task.php", {

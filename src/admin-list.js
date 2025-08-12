@@ -279,6 +279,7 @@ function showTaskDetail(taskId) {
   })
   .then(response => response.json())
   .then(taskData => {
+    
     if (!taskData || taskData.status === 'erro') {
     
       return;
@@ -362,6 +363,7 @@ function showTaskDetail(taskId) {
     // Cancelamento, se houver
     let cancellationInfo = '';
     if (task.status === 'cancelada' && task.cancellation) {
+      const uploadPath = 'api/uploads/cancellations/';
       const cancelDate = new Date(task.cancellation.timestamp);
       const formattedDate = cancelDate.toLocaleDateString('pt-BR');
       const formattedTime = cancelDate.toLocaleTimeString('pt-BR');
@@ -375,7 +377,7 @@ function showTaskDetail(taskId) {
           ${task.cancellation.photo ? `
             <div class="mt-2">
               <strong>Foto do Local:</strong>
-              <img src="${task.cancellation.photo}" class="img-fluid rounded mt-2" alt="Foto do local">
+              <img src="${uploadPath}${task.cancellation.photo}" class="img-fluid rounded mt-2" alt="Foto do local">
             </div>` : ''}
         </div>
       `;
@@ -703,32 +705,63 @@ function loadTaskHistory(task) {
 }
 
 function showFormResponses(task) {
-  const formResponsesSection = document.getElementById('form-responses-section');
-  const formResponsesContent = document.getElementById('form-responses-content');
+  fetch("https://localhost/EBEN/api/showformdetails.php", {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ id: task.id })
+  })
+  .then(response => response.json())
+  .then(formdata => {
+    console.log(formdata); // formdata é um array de formulários
 
-  if (!task.formularioResposta || !task.formularioResposta.answers) {
-    formResponsesSection.style.display = 'none';
-    return;
-  }
+    const formResponsesSection = document.getElementById('form-responses-section');
+    const formResponsesContent = document.getElementById('form-responses-content');
 
-  formResponsesSection.style.display = 'block';
-
-  const responsesHtml = task.formularioResposta.answers.map(answer => {
-    let answerText = answer.answer;
-    if (Array.isArray(answerText)) {
-      answerText = answerText.join(', ');
+    if (!formdata || formdata.length === 0) {
+      // Se não tem formulários, oculta a seção e retorna
+      formResponsesSection.style.display = 'none';
+      formResponsesContent.innerHTML = '';
+      return;
     }
 
-    return `
-      <div class="mb-2">
-        <strong>${answer.questionText}:</strong><br>
-        <span class="text-muted">${answerText || 'Não respondido'}</span>
-      </div>
-    `;
-  }).join('');
+    // Mostra a seção de formulários
+    formResponsesSection.style.display = 'block';
 
-  formResponsesContent.innerHTML = responsesHtml;
+    // Monta o HTML para todos os formulários
+    const responsesHtml = formdata.map(form => {
+      // Para cada formulário, monta as respostas
+      const answersHtml = form.answers.map(answer => {
+        let answerText = answer.answer;
+        if (Array.isArray(answerText)) {
+          answerText = answerText.join(', ');
+        }
+        return `
+          <div class="mb-2">
+            <strong>${answer.questionText}:</strong><br>
+            <span class="text-muted">${answerText || 'Não respondido'}</span>
+          </div>
+        `;
+      }).join('');
+
+      return `
+        <div class="form-response mb-4 p-3 border rounded">
+          <h5>${form.form_titulo}</h5>
+          <small>Respondido em: ${form.respondido_em}</small>
+          <div class="form-answers mt-2">
+            ${answersHtml}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    // Insere o HTML completo no container
+    formResponsesContent.innerHTML = responsesHtml;
+  })
+  .catch(error => {
+    console.error('Erro ao carregar formulário:', error);
+  });
 }
+
 
 function showLocationOnMap(lat, lng, title) {
   const modalHtml = `
@@ -769,6 +802,20 @@ function showLocationOnMap(lat, lng, title) {
       .bindPopup(title)
       .openPopup();
   }, 300);
+}
+
+// ======================================================
+// Função para formatar data/hora de forma segura
+// ======================================================
+function formatDateTimeSafe(dateTime) {
+  if (!dateTime || dateTime === 'null' || dateTime === null) {
+    return '—'; // Mostra traço quando não tem data
+  }
+  const date = new Date(dateTime);
+  if (isNaN(date.getTime())) {
+    return '—';
+  }
+  return date.toLocaleString('pt-BR', { hour12: false });
 }
 
 async function exportIndividualTaskToPDF(taskId) {
@@ -879,20 +926,22 @@ async function exportIndividualTaskToPDF(taskId) {
       yPos += 10;
 
       for (let i = 0; i < history.length; i++) {
+
         // Quebra de página se necessário
         if (yPos > 250) {
           doc.addPage();
           yPos = 20;
         }
-
+        
         const entry = history[i];
         const date = new Date(entry.timestamp);
         const formattedDateTime = `${date.toLocaleDateString('pt-BR')} ${date.toLocaleTimeString('pt-BR')}`;
-
+        
+      
         doc.setFontSize(10);
         doc.text(`${i + 1}. ${getActionText(entry.action)}`, 20, yPos);
         yPos += 5;
-        doc.text(`   Data/Hora: ${formattedDateTime}`, 25, yPos);
+        doc.text(`   Data/Hora: ${formatDateTimeSafe(formattedDateTime)}`, 25, yPos);
         yPos += 5;
 
         if (entry.coordinates) {
@@ -973,8 +1022,68 @@ async function exportIndividualTaskToPDF(taskId) {
       }
     }
 
+    if (task.status.toLowerCase() === 'cancelada') {
+        console.log("entrou")
+
+      // Quebra de página se necessário
+        if (yPos > 200) {
+        doc.addPage();
+        yPos = 20;
+      }
+
+      const cancelDate = new Date(task.cancellation.timestamp);
+      const formattedDate = cancelDate.toLocaleDateString('pt-BR');
+      const formattedTime = cancelDate.toLocaleTimeString('pt-BR');
+
+      doc.setFontSize(14);
+      doc.text('INFORMAÇÕES DE CANCELAMENTO', 20, yPos);
+      yPos += 10;
+
+      doc.setFontSize(10);
+      doc.text(`Data/Hora: ${formattedDate} ${formattedTime}`, 20, yPos);
+      yPos += 5;
+      doc.text(`Motivo: ${task.cancellation.reason || 'Não informado'}`, 20, yPos);
+      yPos += 5;
+
+      if (task.cancellation.coordinates) {
+        const coords = task.cancellation.coordinates.split(',');
+        doc.text(`Localização: Lat ${parseFloat(coords[1]).toFixed(6)}, Lng ${parseFloat(coords[0]).toFixed(6)}`, 20, yPos);
+        yPos += 5;
+      } else {
+        doc.text('Localização: Não informada', 20, yPos);
+        yPos += 5;
+      }
+
+      yPos += 5; // Espaço antes da foto
+
+      // Se houver foto, tentar adicionar
+      if (task.cancellation.photo) {
+        doc.text('Foto do Local:', 20, yPos);
+        yPos += 5;
+
+        try {
+          // Tenta carregar a imagem via URL
+          const img = new Image();
+          img.crossOrigin = 'Anonymous';
+          img.src = task.cancellation.photo;
+          
+          // Adiciona a imagem (dimensionada para 80x60)
+          doc.addImage(img, 'JPEG', 20, yPos, 80, 60);
+          yPos += 70; // Altura da imagem + margem
+        } catch (e) {
+          console.error('Erro ao adicionar imagem ao PDF:', e);
+          doc.text('(Foto não pôde ser incluída)', 20, yPos);
+          yPos += 5;
+        }
+      } else {
+        doc.text('Foto: Não disponível', 20, yPos);
+        yPos += 5;
+      }
+    }
+
     doc.save(`relatorio-tarefa-${task.id}-${new Date().toISOString().split('T')[0]}.pdf`);
-    
+
+
     
   })
   .catch(error => {
@@ -1050,7 +1159,7 @@ async function exportIndividualTaskToPDF(taskId) {
     });
   }
 
-  // Cancel information if applicable
+  /* Cancel information if applicable
   if (task.status === 'cancelada' && task.cancellation) {
     if (yPos > 200) {
       doc.addPage();
