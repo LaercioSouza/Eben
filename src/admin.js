@@ -123,13 +123,15 @@ function initCompanyMap() {
 // Update company coordinates function
 function updateCompanyCoordinates() {
   const latLng = companyMarker.getLatLng();
-  document.getElementById('companyCoordinates').value = `${latLng.lng},${latLng.lat}`;
+  document.getElementById('companyCoordinates').value = `${latLng.lat},${latLng.lng}`;
+
 }
 
 // Update coordinates function
 function updateCoordinates() {
   const latLng = marker.getLatLng();
-  document.getElementById('coordinates').value = `${latLng.lng},${latLng.lat}`;
+  document.getElementById('coordinates').value = `${latLng.lat},${latLng.lng}`;
+
 }
 
 // Set today as default date
@@ -314,6 +316,19 @@ function decimalHoursToHHMMSS(decimal) {
     .padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 }
 
+function getLocalISOString() {
+  const now = new Date();
+  const tzo = -now.getTimezoneOffset();
+  const pad = (num) => (num < 10 ? '0' : '') + num;
+  
+  return now.getFullYear() + '-' +
+    pad(now.getMonth() + 1) + '-' +
+    pad(now.getDate()) + ' ' +
+    pad(now.getHours()) + ':' +
+    pad(now.getMinutes()) + ':' +
+    pad(now.getSeconds());
+}
+
 // Save task using data service
 function saveTask(e) {
   e.preventDefault();
@@ -333,6 +348,7 @@ function saveTask(e) {
     alert('Por favor, selecione uma empresa e um técnico válidos');
     return;
   }
+  const startTime = getLocalISOString();
    const task = {
     id: Date.now(),
     empresaid: empresa,
@@ -354,7 +370,7 @@ function saveTask(e) {
         coordinates: coordinates
       }
     ],
-    createdAt: new Date().toISOString()
+    createdAt: startTime
   };
 
   fetch('https://localhost/EBEN/api/savetask.php', {
@@ -486,7 +502,6 @@ function saveEmployee(e) {
   const employeePosition = document.getElementById('employeePosition').value;
   const employeePhone = document.getElementById('employeePhone').value;
   
-  // Create employee object
   const employee = {
     id: Date.now(),
     nome: employeeName,
@@ -496,39 +511,29 @@ function saveEmployee(e) {
   };
 
   fetch("https://localhost/EBEN/api/employe.php", {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify(employee)
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(employee)
   })
   .then(response => response.json())
   .then(data => {
-   console.log('Resposta do servidor:', data);
-   alert(`Técnico ${employee.nome} cadastrado com sucesso!`);
-   loadEmployees();
+    if (data.status === 'sucesso') {
+      // Exibe a senha gerada para o usuário
+      alert(`Técnico ${employee.nome} cadastrado com sucesso!\nSenha: ${data.password}`);
+      loadEmployees();
+    } else {
+      throw new Error(data.mensagem || 'Erro desconhecido');
+    }
   })
   .catch(error => {
-   console.error('Erro ao enviar:', error);
+    console.error('Erro ao enviar:', error);
+    alert(`Erro no cadastro: ${error.message}`);
   });
   
-  // Save employee using data service
-  //window.dataService.create(window.dataService.DATA_TYPES.EMPLOYEES, employee);
-  
-  // Show success message
-  //alert(`Técnico ${employeeName} cadastrado com sucesso!`);
-  
-  // Reset form
   document.getElementById('employeeForm').reset();
-  
-  // Close modal
   const modal = bootstrap.Modal.getInstance(document.getElementById('employeeModal'));
   if (modal) modal.hide();
-  
-  // Reload employees
-  
 }
-
 // Add employee management functions
 function loadEmployeesTable() {
   fetch("https://localhost/EBEN/api/showtableemployes.php", {

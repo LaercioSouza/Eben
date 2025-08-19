@@ -41,9 +41,16 @@ try {
 
     foreach ($questions as $q) {
         // Valida campos obrigatórios
+        /*
         if (!isset($q['id'], $q['id_formulario'], $q['text'], $q['type'], $q['required'])) {
             throw new Exception("Pergunta incompleta: " . json_encode($q));
         }
+        */
+
+        if (!isset($q['id_formulario'], $q['text'], $q['type'], $q['required'])) {
+            throw new Exception("Pergunta incompleta: " . json_encode($q));
+        }
+       
 
  
         $id_formulario = (int)$q['id_formulario'];

@@ -1,6 +1,7 @@
 //user.js
 // Global variables
 let currentUserId = null;
+currentUserName = null;
 let map = null;
 let userMarker = null;
 let taskMarkers = [];
@@ -49,7 +50,7 @@ function checkLogin() {
   } else {
     // User is not logged in
     showLoginPanel();
-    loadEmployees();
+   // loadEmployees();
   }
 }
 
@@ -57,6 +58,10 @@ function checkLogin() {
 function showLoginPanel() {
   document.getElementById('login-container').classList.remove('d-none');
   document.getElementById('user-panel').classList.add('d-none');
+  
+  // Clear login form fields
+  document.getElementById('inputUsername').value = '';
+  document.getElementById('inputPassword').value = '';
 }
 
 // Show user panel
@@ -76,37 +81,51 @@ function showUserPanel(userName) {
 }
 
 // Login function
+// Corrigir função login
 function login(e) {
   e.preventDefault();
+  
+  const username = document.getElementById('inputUsername').value;
+  const password = document.getElementById('inputPassword').value;
 
-  const userId = document.getElementById('userSelect').value;
-  if (!userId) {
-    alert('Por favor, selecione um usuário');
-    return;
-  }
+  fetch("https://localhost/EBEN/api/login.php", {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password })
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.status === 'sucesso') {
+      currentUserId = data.user.id;
+      currentUserName = data.user.nome;
+      
+      localStorage.setItem('currentUserId', currentUserId);
+      localStorage.setItem('currentUserName', currentUserName);
+      
+      // VERIFICAÇÃO DO TIPO DE USUÁRIO (NOVO)
+      if (data.user.tipe_user == 1) { // Usuário tipo 1 (Admin)
+        logout(e)
+        window.location.href = 'admin.html'; // Redireciona para admin
 
-  fetch("https://localhost/EBEN/api/listemploye.php")
-    .then(response => response.json())
-    .then(users => {
-      const user = users.find(u => u.id === userId || u.id === parseInt(userId));
-
-      if (!user) {
-        alert('Usuário não encontrado');
-        return;
+        return; // Interrompe a execução
       }
-
-      // Definir o usuário atual
-      currentUserId = user.id;
       
-
-      // Exibir painel do usuário
-      showUserPanel(user.nome);
+      // Código para usuários tipo 2 (Técnicos)
+      document.getElementById('current-user-name').textContent = currentUserName;
+      document.getElementById('login-container').classList.add('d-none');
+      document.getElementById('user-panel').classList.remove('d-none');
       
-    })
-    .catch(error => {
-      console.error('Erro ao carregar funcionários:', error);
-      alert('Erro ao tentar fazer login. Verifique sua conexão.');
-    });
+      loadTaskList();
+      startLocationTracking();
+      initializeMap();
+    } else {
+      alert('Falha no login: ' + data.mensagem);
+    }
+  })
+  .catch(error => {
+    console.error('Erro:', error);
+    alert('Erro ao tentar fazer login');
+  });
 }
 
 // Logout function
@@ -117,16 +136,23 @@ function logout(e) {
   localStorage.removeItem('currentUserId');
   localStorage.removeItem('currentUserName');
   currentUserId = null;
+  
+  // Reset user name display
+  document.getElementById('current-user-name').textContent = 'Usuário';
+  
+  // Clear login form fields
+  document.getElementById('inputUsername').value = '';
+  document.getElementById('inputPassword').value = '';
 
   // Stop location tracking
   stopLocationTracking();
 
   // Show login panel
   showLoginPanel();
-  loadEmployees();
 }
 
 // Load employees for login select
+/*
 function loadEmployees() {
   fetch("https://localhost/EBEN/api/listemploye.php")
     .then(response => response.json())
@@ -145,24 +171,8 @@ function loadEmployees() {
       console.error('Erro ao carregar funcionários:', error)
     });
 
-  /*
-  const userSelect = document.getElementById('userSelect');
-
-  // Get employees from data service
-  const employees = window.dataService.getAll(window.dataService.DATA_TYPES.EMPLOYEES);
-
-  // Clear existing options
-  userSelect.innerHTML = '<option value="">Selecione seu usuário</option>';
-
-  // Add each employee as an option
-  employees.forEach(employee => {
-    const option = document.createElement('option');
-    option.value = employee.id;
-    option.textContent = employee.nome;
-    userSelect.appendChild(option);
-  });
-  */
 }
+*/
 
 // Initialize map
 function initializeMap() {
@@ -217,7 +227,7 @@ function startLocationTracking() {
 // Update location
 function updateLocation(position) {
   const { latitude, longitude } = position.coords;
-  currentCoordinates = `${longitude},${latitude}`;
+  currentCoordinates = `${latitude},${longitude}`;
 
   // Update marker position
   if (userMarker) {
@@ -546,7 +556,9 @@ function addTaskMarker(task, completed = false) {
   if (!map) return;
 
   // Parse coordinates
-  const [lng, lat] = task.coordinates.split(',').map(parseFloat);
+  // Parse coordinates
+const [lat, lng] = task.coordinates.split(',').map(parseFloat);
+
 
   // Choose icon color based on task status
   let iconColor = 'red'; // Default for pending
@@ -849,6 +861,7 @@ if (task.transitTime || task.workTime || task.pauseTime || task.returnTransitTim
     .catch(error => {
       console.error('Erro ao carregar detalhes da tarefa:', error);
     });
+    console.log(currentCoordinates)
 }
 
 // Start transit function

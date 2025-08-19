@@ -24,6 +24,7 @@ try {
 
 
 $data= json_decode(file_get_contents('php://input'), true);
+date_default_timezone_set('America/Sao_Paulo');
   if (!$data) {
   echo json_encode(['status' => 'erro', 'mensagem' => 'Dados ausentes!']);
   exit;

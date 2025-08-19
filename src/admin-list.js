@@ -224,8 +224,8 @@ function initDetailMap(coordinates) {
 
   if (coordinates) {
     const coords = coordinates.split(',');
-    initialLng = parseFloat(coords[0]);
-    initialLat = parseFloat(coords[1]);
+    initialLat = parseFloat(coords[0]);
+    initialLng = parseFloat(coords[1]);
   }
 
   detailMap = L.map('detail-map').setView([initialLat, initialLng], 15);
@@ -642,66 +642,65 @@ function setupCollapsibleHistory() {
 
 function loadTaskHistory(task) {
     const historyList = document.getElementById('task-history-list');
-  historyList.innerHTML = '<p class="text-muted">Carregando histórico...</p>';
+    historyList.innerHTML = '<p class="text-muted">Carregando histórico...</p>';
 
-  fetch("https://localhost/EBEN/api/get_task_history.php", {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({ id: task.id })
-  })
-  .then(response => response.json())
-  .then(historyData => {
-    console.log('Dados do histórico:', historyData);
-    const history = historyData.history;
+    fetch("https://localhost/EBEN/api/get_task_history.php", {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ id: task.id })
+    })
+    .then(response => response.json())
+    .then(historyData => {
+        console.log('Dados do histórico:', historyData);
+        const history = historyData.history;
 
-    if (!history || history.length === 0) {
-        historyList.innerHTML = '<p class="text-muted">Nenhum histórico disponível</p>';
-        return;
-      }
+        if (!history || history.length === 0) {
+            historyList.innerHTML = '<p class="text-muted">Nenhum histórico disponível</p>';
+            return;
+        }
 
-    // Usa os dados na ordem original da API
-    const historyHtml = history.map(entry => {
-      const date = new Date(entry.timestamp);
-      const formattedDate = date.toLocaleDateString('pt-BR');
-      const formattedTime = date.toLocaleTimeString('pt-BR');
-      
-      // Extrai coordenadas (se existirem)
-      let locationInfo = 'Localização não disponível';
-      let coords = null;
-      
-      if (entry.coordinates) {
-        coords = entry.coordinates.split(',');
-        locationInfo = `Lat: ${parseFloat(coords[1]).toFixed(6)}, Lng: ${parseFloat(coords[0]).toFixed(6)}`;
-      }
-
-      return `
-        <div class="border-start border-primary ps-3 mb-3">
-          <div class="d-flex justify-content-between align-items-start">
-            <div>
-              <div class="fw-bold">${getActionText(entry.action)}</div>
-              <small class="text-muted">${formattedDate} às ${formattedTime}</small>
-              <br><small class="text-info">${locationInfo}</small>
-              ${entry.observations ? `<br><small class="text-secondary"><strong>Observações:</strong> ${entry.observations}</small>` : ''}
-              ${entry.reason ? `<br><small class="text-warning"><strong>Motivo:</strong> ${entry.reason}</small>` : ''}
-            </div>
-            ${coords ? 
-              `<button class="btn btn-sm btn-outline-primary" 
-                onclick="showLocationOnMap('${coords[1]}', '${coords[0]}', '${getActionText(entry.action)}')">
-                Ver no Mapa
-              </button>` : 
-              ''
+        // Usa os dados na ordem original da API
+        const historyHtml = history.map(entry => {
+            // CORREÇÃO AQUI: Usar formatDateTimeSafe diretamente no timestamp
+            const formattedDateTime = formatDateTimeSafe(entry.timestamp);
+            
+            // Extrai coordenadas (se existirem)
+            let locationInfo = 'Localização não disponível';
+            let coords = null;
+            
+            if (entry.coordinates) {
+                coords = entry.coordinates.split(',');
+                locationInfo = `Lat: ${parseFloat(coords[0]).toFixed(6)}, Lng: ${parseFloat(coords[1]).toFixed(6)}`;
             }
-          </div>
-        </div>
-      `;
-    }).join('');
 
-    historyList.innerHTML = historyHtml;
-  })
-  .catch(error => {
-    console.error('Erro ao carregar histórico:', error);
-    historyList.innerHTML = '<p class="text-danger">Erro ao carregar histórico</p>';
-  });
+            return `
+                <div class="border-start border-primary ps-3 mb-3">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="fw-bold">${getActionText(entry.action)}</div>
+                            <small class="text-muted">${formattedDateTime}</small>
+                            <br><small class="text-info">${locationInfo}</small>
+                            ${entry.observations ? `<br><small class="text-secondary"><strong>Observações:</strong> ${entry.observations}</small>` : ''}
+                            ${entry.reason ? `<br><small class="text-warning"><strong>Motivo:</strong> ${entry.reason}</small>` : ''}
+                        </div>
+                        ${coords ? 
+                            `<button class="btn btn-sm btn-outline-primary" 
+                                onclick="showLocationOnMap('${coords[0]}', '${coords[1]}', '${getActionText(entry.action)}')">
+                                Ver no Mapa
+                            </button>` : 
+                            ''
+                        }
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        historyList.innerHTML = historyHtml;
+    })
+    .catch(error => {
+        console.error('Erro ao carregar histórico:', error);
+        historyList.innerHTML = '<p class="text-danger">Erro ao carregar histórico</p>';
+    });
 }
 
 function showFormResponses(task) {
@@ -807,15 +806,20 @@ function showLocationOnMap(lat, lng, title) {
 // ======================================================
 // Função para formatar data/hora de forma segura
 // ======================================================
+// Função modificada
 function formatDateTimeSafe(dateTime) {
-  if (!dateTime || dateTime === 'null' || dateTime === null) {
-    return '—'; // Mostra traço quando não tem data
+  // Se já for um objeto Date válido
+  if (dateTime instanceof Date && !isNaN(dateTime.getTime())) {
+    return dateTime.toLocaleString('pt-BR', { hour12: false });
   }
-  const date = new Date(dateTime);
-  if (isNaN(date.getTime())) {
+  
+  // Se for string/number/outro formato
+  if (!dateTime || dateTime === 'null' || dateTime === null) {
     return '—';
   }
-  return date.toLocaleString('pt-BR', { hour12: false });
+  
+  const date = new Date(dateTime);
+  return isNaN(date.getTime()) ? '—' : date.toLocaleString('pt-BR', { hour12: false });
 }
 
 async function exportIndividualTaskToPDF(taskId) {
@@ -941,7 +945,7 @@ async function exportIndividualTaskToPDF(taskId) {
         doc.setFontSize(10);
         doc.text(`${i + 1}. ${getActionText(entry.action)}`, 20, yPos);
         yPos += 5;
-        doc.text(`   Data/Hora: ${formatDateTimeSafe(formattedDateTime)}`, 25, yPos);
+        doc.text(`   Data/Hora: ${formatDateTimeSafe(entry.timestamp)}`, 25, yPos);
         yPos += 5;
 
         if (entry.coordinates) {

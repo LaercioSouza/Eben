@@ -1,0 +1,217 @@
+CREATE DATABASE IF NOT EXISTS `dashboard_db` 
+  DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+USE `dashboard_db`;
+
+-- 1. Companies
+CREATE TABLE IF NOT EXISTS `companies` (
+  `id` bigint(20) NOT NULL,
+  `nome` varchar(255) NOT NULL,
+  `cnpj` varchar(20) NOT NULL,
+  `endereco` varchar(255) DEFAULT NULL,
+  `telefone` varchar(20) DEFAULT NULL,
+  `coordinates` varchar(100) DEFAULT NULL,
+  `parent_id` bigint(20) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `cnpj` (`cnpj`),
+  KEY `parent_id` (`parent_id`),
+  CONSTRAINT `companies_ibfk_1` FOREIGN KEY (`parent_id`) REFERENCES `companies` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+INSERT INTO `companies` (`id`, `nome`, `cnpj`, `endereco`, `telefone`, `coordinates`, `parent_id`, `created_at`) VALUES
+(1749471270754, 'TicBox Sistemas', '3283293281823', 'Avenida Nossa Senhora de Fátima', '86995591579', '-41.7734,-2.9055', NULL, '2025-06-09 15:14:30'),
+(1749471447370, 'Elizeu Martins', '28329328429382', 'Avenida Dr João Silva Filho', '86995591579', '-41.7734,-2.9055', NULL, '2025-06-09 15:17:27'),
+(1749727759832, 'Mateus Atacadista', '82394829382939', 'Av. São Sebastião', '86998763536', '-41.7734,-2.9055', NULL, '2025-06-12 14:29:19'),
+(1749727820169, 'Pizza Quadrada', '8238329383929', 'Av. São Sebastião', '86996762827', '-41.7734,-2.9055', NULL, '2025-06-12 14:30:20'),
+(1749728902107, 'Pizza Quadrada', '9238239293990', 'Beira Rio', '86988786723', '-41.7734,-2.9055', 1749727820169, '2025-06-12 14:48:22'),
+(1749815571186, 'Panda Sushi', '889799997878797', 'Bairro Pindorama', '86998898767', '-41.7734,-2.9055', NULL, '2025-06-13 14:52:51');
+
+-- 2. Employees
+CREATE TABLE IF NOT EXISTS `employees` (
+  `id` bigint(20) NOT NULL,
+  `nome` varchar(255) NOT NULL,
+  `cargo` varchar(100) DEFAULT NULL,
+  `telefone` varchar(20) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `password` varchar(50) DEFAULT NULL,
+  `tipe_user` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+INSERT INTO `employees` (`id`, `nome`, `cargo`, `telefone`, `created_at`, `password`, `tipe_user`) VALUES
+(1755562715705, 'Laerciosouza', 'Analista de suporte', '86995591579', '2025-08-19 03:18:35', 'Fdr4KV', 2);
+
+-- 3. Form
+CREATE TABLE IF NOT EXISTS `form` (
+  `id` bigint(20) NOT NULL,
+  `titulo` varchar(255) NOT NULL,
+  `descricao` text DEFAULT NULL,
+  `criado_em` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+INSERT INTO `form` (`id`, `titulo`, `descricao`, `criado_em`) VALUES
+(1755525744054, 'Formulário estruturado', 'teste avançado', '2025-08-18 17:02:24'),
+(1755528405533, 'teste número 2', 'nenhuma', '2025-08-18 17:46:45');
+
+-- 4. Task
+CREATE TABLE IF NOT EXISTS `task` (
+  `id` bigint(20) NOT NULL,
+  `empresa_id` bigint(20) NOT NULL,
+  `colaborador_id` bigint(20) NOT NULL,
+  `responsavel` varchar(255) DEFAULT NULL,
+  `tempo_sugerido` time DEFAULT NULL,
+  `data_tarefa` date DEFAULT NULL,
+  `hora_tarefa` time DEFAULT NULL,
+  `descricao` text DEFAULT NULL,
+  `coordenadas` varchar(100) DEFAULT NULL,
+  `formulario_id` bigint(20) DEFAULT NULL,
+  `status` varchar(50) DEFAULT NULL,
+  `criado_em` timestamp NOT NULL DEFAULT current_timestamp(),
+  `transitStartedAt` timestamp NULL DEFAULT NULL,
+  `transitEndLocation` varchar(100) DEFAULT NULL,
+  `transitTime` time DEFAULT NULL,
+  `taskStartedAt` timestamp NULL DEFAULT NULL,
+  `startLocation` varchar(100) DEFAULT NULL,
+  `completedAt` datetime DEFAULT NULL,
+  `observations` text DEFAULT NULL,
+  `completionObservations` text DEFAULT NULL,
+  `workTime` time DEFAULT NULL,
+  `pauseTime` time DEFAULT NULL,
+  `returnStartLocation` varchar(100) DEFAULT NULL,
+  `returnStartedAt` datetime DEFAULT NULL,
+  `returnEndLocation` varchar(100) DEFAULT NULL,
+  `returnTransitTime` time DEFAULT NULL,
+  `finalizedAt` datetime DEFAULT NULL,
+  `finalObservations` text DEFAULT NULL,
+  `totalTime` time DEFAULT NULL,
+  `cancellation_timestamp` datetime DEFAULT NULL,
+  `cancellation_reason` varchar(100) DEFAULT NULL,
+  `cancellation_coordinates` varchar(100) DEFAULT NULL,
+  `cancellation_photo` varchar(100) DEFAULT NULL,
+  `transitStartLocation` varchar(100) DEFAULT NULL,
+  `transitEndAt` timestamp NULL DEFAULT NULL,
+  `ReturnEndAt` timestamp NULL DEFAULT NULL,
+  `locationEndTask` varchar(100) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `empresa_id` (`empresa_id`),
+  KEY `colaborador_id` (`colaborador_id`),
+  KEY `formulario_id` (`formulario_id`),
+  CONSTRAINT `task_ibfk_1` FOREIGN KEY (`empresa_id`) REFERENCES `companies` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `task_ibfk_2` FOREIGN KEY (`colaborador_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `task_ibfk_3` FOREIGN KEY (`formulario_id`) REFERENCES `form` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+INSERT INTO `task` (`id`, `empresa_id`, `colaborador_id`, `responsavel`, `tempo_sugerido`, `data_tarefa`, `hora_tarefa`, `descricao`, `coordenadas`, `formulario_id`, `status`, `criado_em`, `transitStartedAt`, `transitEndLocation`, `transitTime`, `taskStartedAt`, `startLocation`, `completedAt`, `observations`, `completionObservations`, `workTime`, `pauseTime`, `returnStartLocation`, `returnStartedAt`, `returnEndLocation`, `returnTransitTime`, `finalizedAt`, `finalObservations`, `totalTime`, `cancellation_timestamp`, `cancellation_reason`, `cancellation_coordinates`, `cancellation_photo`, `transitStartLocation`, `transitEndAt`, `ReturnEndAt`, `locationEndTask`) VALUES
+(1755565943822, 1749471447370, 1755562715705, 'Josué', '02:00:00', '2025-08-18', '15:00:00', 'nenhuma', '-2.9055,-41.7734', NULL, 'concluida', '2025-08-19 01:12:23', '2025-08-19 01:12:51', '-2.9261824,-41.730048', '00:00:04', '2025-08-19 01:12:59', '-2.9261824,-41.730048', '2025-08-18 22:13:05', '', '', '00:00:06', '00:00:00', '-2.9261824,-41.730048', '2025-08-18 22:13:07', '-2.9261824,-41.730048', '00:00:05', '2025-08-18 22:13:17', '', '00:00:26', NULL, NULL, NULL, NULL, '-2.9261824,-41.730048', '2025-08-19 01:12:55', '2025-08-19 01:13:12', '-2.9261824,-41.730048'),
+(1755567282603, 1749471447370, 1755562715705, 'Fabricio', '02:00:00', '2025-08-18', '00:00:00', 'nenhuma', '-2.91869687951626,-41.77276591273002', 1755525744054, 'cancelada', '2025-08-19 01:34:42', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-08-18 22:35:23', 'erro', '-2.9261824,-41.730048', 'cancel_1755567282603_1755567323.jpg', NULL, NULL, NULL, NULL),
+(1755567434095, 1749471270754, 1755562715705, 'James', '02:00:00', '2025-08-20', '16:00:00', 'nenhuma', '-2.9113249913923958,-41.73052488009859', 1755525744054, 'concluida', '2025-08-19 01:37:14', '2025-08-19 02:07:15', '-2.9261824,-41.730048', '00:00:09', '2025-08-19 02:07:28', '-2.9261824,-41.730048', '2025-08-18 23:07:43', '', '', '00:00:15', '00:00:00', '-2.9261824,-41.730048', '2025-08-18 23:07:50', '-2.9261824,-41.730048', '00:00:04', '2025-08-18 23:07:59', '', '00:00:44', NULL, NULL, NULL, NULL, '-2.9261824,-41.730048', '2025-08-19 02:07:24', '2025-08-19 02:07:54', '-2.9261824,-41.730048');
+
+-- 5. Form Response
+CREATE TABLE IF NOT EXISTS `form_response` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `id_formulario` bigint(20) NOT NULL,
+  `respondido_em` timestamp NOT NULL DEFAULT current_timestamp(),
+  `task_id` bigint(20) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_form_response_id_formulario` (`id_formulario`),
+  KEY `fk_task_id` (`task_id`),
+  CONSTRAINT `fk_form_response_form` FOREIGN KEY (`id_formulario`) REFERENCES `form` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_task_id` FOREIGN KEY (`task_id`) REFERENCES `task` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+INSERT INTO `form_response` (`id`, `id_formulario`, `respondido_em`, `task_id`) VALUES
+(30, 1755525744054, '2025-08-19 02:07:42', 1755567434095);
+
+-- 6. Question
+CREATE TABLE IF NOT EXISTS `question` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `id_formulario` bigint(20) NOT NULL,
+  `texto` text NOT NULL,
+  `tipo` varchar(50) DEFAULT NULL,
+  `obrigatoria` tinyint(1) DEFAULT 0,
+  PRIMARY KEY (`id`),
+  KEY `id_formulario` (`id_formulario`),
+  CONSTRAINT `question_ibfk_1` FOREIGN KEY (`id_formulario`) REFERENCES `form` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+INSERT INTO `question` (`id`, `id_formulario`, `texto`, `tipo`, `obrigatoria`) VALUES
+(69, 1755525744054, 'qual o seu nome?', 'textarea', 0),
+(70, 1755525744054, 'Qual sua profissão?', 'radio', 1),
+(71, 1755525744054, 'quais suas linguagens?', 'checkbox', 1),
+(79, 1755528405533, 'null', 'radio', 0),
+(80, 1755528405533, 'null', 'radio', 1),
+(81, 1755528405533, 'nula', 'text', 1);
+
+-- 7. Alternative
+CREATE TABLE IF NOT EXISTS `alternative` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `id_pergunta` bigint(20) NOT NULL,
+  `texto` text NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `id_pergunta` (`id_pergunta`),
+  CONSTRAINT `alternative_ibfk_1` FOREIGN KEY (`id_pergunta`) REFERENCES `question` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+INSERT INTO `alternative` (`id`, `id_pergunta`, `texto`) VALUES
+(251, 70, 'programador'),
+(252, 70, 'analista'),
+(253, 71, 'java'),
+(254, 71, 'php'),
+(255, 71, 'python'),
+(266, 79, 'null'),
+(267, 79, 'null'),
+(268, 79, 'null'),
+(269, 80, 'null'),
+(270, 80, 'null');
+
+-- 8. Question Response
+CREATE TABLE IF NOT EXISTS `question_response` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `id_form_response` bigint(20) NOT NULL,
+  `id_pergunta` bigint(20) NOT NULL,
+  `resposta_texto` text DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `id_form_response` (`id_form_response`),
+  KEY `id_pergunta` (`id_pergunta`),
+  CONSTRAINT `question_response_ibfk_1` FOREIGN KEY (`id_form_response`) REFERENCES `form_response` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `question_response_ibfk_2` FOREIGN KEY (`id_pergunta`) REFERENCES `question` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+INSERT INTO `question_response` (`id`, `id_form_response`, `id_pergunta`, `resposta_texto`) VALUES
+(74, 30, 69, 'Laercio Souza da Silva'),
+(75, 30, 70, 'programador'),
+(76, 30, 71, '');
+
+-- 9. Question Response Alternative
+CREATE TABLE IF NOT EXISTS `question_response_alternative` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `id_question_response` bigint(20) NOT NULL,
+  `id_alternativa` bigint(20) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `id_question_response` (`id_question_response`),
+  KEY `id_alternativa` (`id_alternativa`),
+  CONSTRAINT `question_response_alternative_ibfk_1` FOREIGN KEY (`id_question_response`) REFERENCES `question_response` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `question_response_alternative_ibfk_2` FOREIGN KEY (`id_alternativa`) REFERENCES `alternative` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+INSERT INTO `question_response_alternative` (`id`, `id_question_response`, `id_alternativa`) VALUES
+(67, 75, 251),
+(68, 76, 253),
+(69, 76, 254);
+-- 10. Task Pauses
+CREATE TABLE IF NOT EXISTS `task_pauses` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `task_id` bigint(20) NOT NULL,
+  `started_at` datetime NOT NULL,
+  `ended_at` datetime DEFAULT NULL,
+  `duration` time DEFAULT NULL,
+  `location` varchar(255) NOT NULL,
+  `reason` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `endLocation` varchar(100) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `task_id` (`task_id`),
+  CONSTRAINT `task_pauses_ibfk_1` FOREIGN KEY (`task_id`) REFERENCES `task` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
