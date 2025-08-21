@@ -196,7 +196,7 @@ function loadCompanies() {
 }
 
 // Load subsidiaries
-function loadSubsidiaries() {
+async function loadSubsidiaries() {
   const empresaId = document.getElementById('empresa').value;
 
   if (!empresaId) {
@@ -204,42 +204,46 @@ function loadSubsidiaries() {
     return;
   }
 
-  // Get companies from data service
-  const companies = window.dataService.getAll(window.dataService.DATA_TYPES.COMPANIES);
+  try {
+    const response = await fetch(`https://localhost/EBEN/api/get_subsidiaries.php?empresaId=${empresaId}`);
+    
+    if (!response.ok) {
+      throw new Error('Erro ao carregar filiais');
+    }
 
-  // Find subsidiaries of selected company
-  const subsidiaries = companies.filter(company => company.parentId === parseInt(empresaId));
+    const subsidiaries = await response.json();
 
-  if (subsidiaries.length === 0) {
+    if (subsidiaries.length === 0) {
+      toggleSubsidiaryField(false);
+      return;
+    }
+
+    toggleSubsidiaryField(true);
+    const subsidiarySelect = document.getElementById('subsidiary');
+    
+    subsidiarySelect.innerHTML = '<option value="">Selecione uma filial (opcional)</option>';
+
+    subsidiaries.forEach(subsidiary => {
+      const option = document.createElement('option');
+      option.value = subsidiary.id;
+
+      let displayText = subsidiary.nome;
+      if (subsidiary.cnpj) {
+        displayText += ` (CNPJ: ${subsidiary.cnpj})`;
+      }
+      if (subsidiary.endereco) {
+        displayText += ` - ${subsidiary.endereco}`;
+      }
+
+      option.textContent = displayText;
+      option.title = `${subsidiary.nome}\nCNPJ: ${subsidiary.cnpj || 'Não informado'}\nEndereço: ${subsidiary.endereco || 'Não informado'}\nTelefone: ${subsidiary.telefone || 'Não informado'}`;
+      subsidiarySelect.appendChild(option);
+    });
+
+  } catch (error) {
+    console.error('Erro:', error);
     toggleSubsidiaryField(false);
-    return;
   }
-
-  // Show the field and populate with subsidiaries
-  toggleSubsidiaryField(true);
-
-  const subsidiarySelect = document.getElementById('subsidiary');
-
-  // Clear current options
-  subsidiarySelect.innerHTML = '<option value="">Selecione uma filial (opcional)</option>';
-
-  // Add subsidiaries with detailed information
-  subsidiaries.forEach(subsidiary => {
-    const option = document.createElement('option');
-    option.value = subsidiary.id;
-
-    let displayText = subsidiary.nome;
-    if (subsidiary.cnpj) {
-      displayText += ` (CNPJ: ${subsidiary.cnpj})`;
-    }
-    if (subsidiary.endereco) {
-      displayText += ` - ${subsidiary.endereco}`;
-    }
-
-    option.textContent = displayText;
-    option.title = `${subsidiary.nome}\nCNPJ: ${subsidiary.cnpj || 'Não informado'}\nEndereço: ${subsidiary.endereco || 'Não informado'}\nTelefone: ${subsidiary.telefone || 'Não informado'}`;
-    subsidiarySelect.appendChild(option);
-  });
 }
 
 // Toggle subsidiary field visibility
@@ -418,6 +422,8 @@ function saveCompany(e) {
   const companyPhone = document.getElementById('companyPhone').value;
   const parentCompanyId = document.getElementById('parentCompany').value || null;
   const companyCoordinates = document.getElementById('companyCoordinates')?.value || null;
+  const createdAt = getLocalISOString();
+
   // Create company object
   const company = {
     id: Date.now(),
@@ -427,7 +433,7 @@ function saveCompany(e) {
     telefone: companyPhone,
     coordinates: companyCoordinates,
     parentId: parentCompanyId ? parseInt(parentCompanyId) : null,
-    createdAt: new Date().toISOString()
+    createdAt: createdAt
   };
     fetch("https://localhost/EBEN/api/config.php", {
          method: 'POST',
@@ -435,24 +441,25 @@ function saveCompany(e) {
         'Content-Type': 'application/json'
         },
         body: JSON.stringify(company)
-})
+})      
+.then(response => response.text()) // <- Use .text() temporariamente
+  .then(text => {
+    console.log('Resposta bruta:', text);
+    alert(`Empresa ${companyName} cadastrada com sucesso!`);
+    const form = JSON.parse(text);
+  })
+
+      /*
        .then(response => response.json())
        .then(data => {
         console.log('Resposta do servidor:', data);
-        
-      })
+        alert(`Empresa ${companyName} cadastrada com sucesso!`);
+      * 
+      })*/
 .catch(error => {
   console.error('Erro ao enviar:', error);
 });
 
-  // Show success message
-  if (parentCompanyId) {
-    const companies = window.dataService.getAll(window.dataService.DATA_TYPES.COMPANIES);
-    const parentCompany = companies.find(c => c.id === parseInt(parentCompanyId));
-    alert(`Filial ${companyName} cadastrada com sucesso para ${parentCompany.nome}!`);
-  } else {
-    alert(`Empresa ${companyName} cadastrada com sucesso!`);
-  }
   
   // Reset form
   document.getElementById('companyForm').reset();
@@ -494,20 +501,37 @@ function loadParentCompanies() {
     });
 }
 
+function getLocalISOString() {
+  const now = new Date();
+  const tzo = -now.getTimezoneOffset();
+  const pad = (num) => (num < 10 ? '0' : '') + num;
+  
+  return now.getFullYear() + '-' +
+    pad(now.getMonth() + 1) + '-' +
+    pad(now.getDate()) + ' ' +
+    pad(now.getHours()) + ':' +
+    pad(now.getMinutes()) + ':' +
+    pad(now.getSeconds());
+}
+
 // Save employee using data service
 function saveEmployee(e) {
   e.preventDefault();
 
   const employeeName = document.getElementById('employeeName').value;
+  const employeeEmail = document.getElementById('employeeEmail').value;
   const employeePosition = document.getElementById('employeePosition').value;
   const employeePhone = document.getElementById('employeePhone').value;
+  const createdAt = getLocalISOString();
+
   
   const employee = {
     id: Date.now(),
     nome: employeeName,
+    email: employeeEmail,
     cargo: employeePosition,
     telefone: employeePhone,
-    createdAt: new Date().toISOString()
+    createdAt: createdAt
   };
 
   fetch("https://localhost/EBEN/api/employe.php", {
@@ -518,7 +542,6 @@ function saveEmployee(e) {
   .then(response => response.json())
   .then(data => {
     if (data.status === 'sucesso') {
-      // Exibe a senha gerada para o usuário
       alert(`Técnico ${employee.nome} cadastrado com sucesso!\nSenha: ${data.password}`);
       loadEmployees();
     } else {
@@ -534,6 +557,7 @@ function saveEmployee(e) {
   const modal = bootstrap.Modal.getInstance(document.getElementById('employeeModal'));
   if (modal) modal.hide();
 }
+// Add employee management functions
 // Add employee management functions
 function loadEmployeesTable() {
   fetch("https://localhost/EBEN/api/showtableemployes.php", {
@@ -560,6 +584,7 @@ function loadEmployeesTable() {
     tbody.innerHTML = data.map(employee => `
       <tr>
         <td>${employee.nome}</td>
+        <td>${employee.email}</td>
         <td>${employee.cargo}</td>
         <td>${employee.telefone}</td>
         <td>
@@ -574,6 +599,7 @@ function loadEmployeesTable() {
     console.error('Erro ao enviar:', error);
   });
 }
+
 
 function deleteEmployee(employeeId) {
   const confirmDelete = confirm("Tem certeza que deseja deletar este usuário? Esta ação não pode ser desfeita.");

@@ -211,34 +211,38 @@
 
   <!-- Modal de Cadastro de Funcionário -->
   <div class="modal fade" id="employeeModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header bg-success text-white">
-          <h5 class="modal-title">Cadastrar Novo Técnico</h5>
-          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-          <form id="employeeForm">
-            <div class="mb-3">
-              <label for="employeeName" class="form-label">Nome do Técnico:</label>
-              <input type="text" class="form-control" id="employeeName" required>
-            </div>
-            <div class="mb-3">
-              <label for="employeePosition" class="form-label">Cargo:</label>
-              <input type="text" class="form-control" id="employeePosition" required>
-            </div>
-            <div class="mb-3">
-              <label for="employeePhone" class="form-label">Telefone:</label>
-              <input type="tel" class="form-control" id="employeePhone" required>
-            </div>
-            <div class="d-grid">
-              <button type="submit" class="btn btn-success">Cadastrar Técnico</button>
-            </div>
-          </form>
-        </div>
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title">Cadastrar Novo Técnico</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="employeeForm">
+          <div class="mb-3">
+            <label for="employeeName" class="form-label">Nome do Técnico:</label>
+            <input type="text" class="form-control" id="employeeName" required>
+          </div>
+          <div class="mb-3">
+            <label for="employeeEmail" class="form-label">E-mail:</label>
+            <input type="email" class="form-control" id="employeeEmail" required>
+          </div>
+          <div class="mb-3">
+            <label for="employeePosition" class="form-label">Cargo:</label>
+            <input type="text" class="form-control" id="employeePosition" required>
+          </div>
+          <div class="mb-3">
+            <label for="employeePhone" class="form-label">Telefone:</label>
+            <input type="tel" class="form-control" id="employeePhone" required>
+          </div>
+          <div class="d-grid">
+            <button type="submit" class="btn btn-success">Cadastrar Técnico</button>
+          </div>
+        </form>
       </div>
     </div>
   </div>
+</div>
 
   <!-- Modal de Gerenciamento de Técnicos -->
   <div class="modal fade" id="manageEmployeesModal" tabindex="-1" aria-hidden="true">
@@ -254,6 +258,7 @@
               <thead>
                 <tr>
                   <th>Nome</th>
+                  <th>Email</th>
                   <th>Cargo</th>
                   <th>Telefone</th>
                   <th>Ações</th>

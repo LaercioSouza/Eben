@@ -201,6 +201,19 @@ function openCreateModal() {
   submitButton.classList.add('btn-primary');
 }
 
+function getLocalISOString() {
+  const now = new Date();
+  const tzo = -now.getTimezoneOffset();
+  const pad = (num) => (num < 10 ? '0' : '') + num;
+  
+  return now.getFullYear() + '-' +
+    pad(now.getMonth() + 1) + '-' +
+    pad(now.getDate()) + ' ' +
+    pad(now.getHours()) + ':' +
+    pad(now.getMinutes()) + ':' +
+    pad(now.getSeconds());
+}
+
 
 // Save form
 function saveForm() {
@@ -221,18 +234,21 @@ function saveForm() {
   questoes.forEach(question => {
   question.id_formulario = id_form;
 });
+
+const createdAt = getLocalISOString();
   
   const formjson = {
     id: id_form,
     name: formName,
     description: formDescription,
-    createdAt: new Date().toISOString()
+    createdAt: createdAt
   };
   fetch("https://localhost/EBEN/api/saveform.php", {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify(formjson)
 })
+
 .then(response => response.json())
 .then(data => {
   console.log('Formulário salvo:', data);
@@ -245,12 +261,14 @@ function saveForm() {
 })
 .then(response => response.json())
 .then(data => {
+
   console.log('Perguntas salvas:', data);
   if(data){
     loadForms();
     hidePreview();
     alert(`Formulário salvo com sucesso!`);
   }
+    
 })
 .catch(error => {
   console.error('Erro ao enviar:', error);

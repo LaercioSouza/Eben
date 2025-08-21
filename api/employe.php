@@ -10,52 +10,80 @@ $db = 'dashboard_db';
 $user = 'root';
 $pass = '';
 
-$pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8", $user, $pass);
+try {
+    $pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8", $user, $pass);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch (Exception $e) {
+    echo json_encode(['status' => 'erro', 'mensagem' => 'Falha na conexão: ' . $e->getMessage()]);
+    exit;
+}
 
 $data = json_decode(file_get_contents('php://input'), true);
 
-if (!$data) {
-  echo json_encode(['status' => 'erro', 'mensagem' => 'Dados ausentes']);
-  exit;
+// Protege contra campos faltando
+$employeeId   = $data['id']        ?? null;
+$employeeNome = trim($data['nome'] ?? '');
+$employeeEmail = trim($data['email'] ?? '');
+$employeeCargo = trim($data['cargo'] ?? '');
+$employeeTelefone = trim($data['telefone'] ?? '');
+$employeeCreatedAt = $data['createdAt'] ?? date('Y-m-d H:i:s');
+
+if (empty($employeeNome) || empty($employeeEmail) || empty($employeeCargo) || empty($employeeTelefone)) {
+    echo json_encode(['status' => 'erro', 'mensagem' => 'Campos obrigatórios ausentes.']);
+    exit;
 }
 
-// Gera senha aleatória de 6 caracteres (letras e números)
+// Função para gerar senha aleatória
 function generateRandomPassword($length = 6) {
     $chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
     $password = '';
     for ($i = 0; $i < $length; $i++) {
-        $password .= $chars[rand(0, strlen($chars) - 1)];
+        $password .= $chars[random_int(0, strlen($chars) - 1)];
     }
     return $password;
 }
 
 $senhaGerada = generateRandomPassword();
-$tipe_user = 2; // Tipo 2 = Técnico
+$senhaHash = password_hash($senhaGerada, PASSWORD_DEFAULT);
+$tipo_user = 2; // Técnico
 
-$sql = "INSERT INTO employees (id, nome, cargo, telefone, created_at, password, tipe_user)
-        VALUES (:id, :nome, :cargo, :telefone, :created_at, :password, :tipe_user)";
+try {
+    // Verifica se email já existe
+    $check = $pdo->prepare("SELECT id FROM employees WHERE email = :email");
+    $check->execute([':email' => $employeeEmail]);
+    if ($check->fetch()) {
+        echo json_encode(['status' => 'erro', 'mensagem' => 'E-mail já cadastrado.']);
+        exit;
+    }
 
-$stmt = $pdo->prepare($sql);
-$success = $stmt->execute([
-  ':id' => $data['id'],
-  ':nome' => $data['nome'],
-  ':cargo' => $data['cargo'],
-  ':telefone' => $data['telefone'],
-  ':created_at' => $data['createdAt'],
-  ':password' => $senhaGerada, // Nova senha gerada
-  ':tipe_user' => $tipe_user   // Tipo de usuário fixo
-]);
+    $sql = "INSERT INTO employees 
+            (id, nome, email, cargo, telefone, created_at, password, tipe_user)
+            VALUES (:id, :nome, :email, :cargo, :telefone, :created_at, :password, :tipe_user)";
+    $stmt = $pdo->prepare($sql);
 
-if ($success) {
-  // Retorna a senha gerada no response
-  echo json_encode([
-    'status' => 'sucesso',
-    'password' => $senhaGerada,
-    'user_type' => $tipe_user
-  ]);
-} else {
-  echo json_encode([
-    'status' => 'erro',
-    'mensagem' => 'Erro ao inserir: ' . implode(' ', $stmt->errorInfo())
-  ]);
+    $success = $stmt->execute([
+        ':id' => $employeeId,
+        ':nome' => $employeeNome,
+        ':email' => $employeeEmail,
+        ':cargo' => $employeeCargo,
+        ':telefone' => $employeeTelefone,
+        ':created_at' => $employeeCreatedAt,
+        ':password' => $senhaHash,
+        ':tipe_user' => $tipo_user
+    ]);
+
+    if ($success) {
+        echo json_encode([
+            'status' => 'sucesso',
+            'mensagem' => "Técnico cadastrado com sucesso",
+            'password' => $senhaGerada, // Retorna senha em texto para administrador
+            'user_type' => $tipo_user,
+            'received_data' => $data
+        ]);
+    } else {
+        echo json_encode(['status' => 'erro', 'mensagem' => 'Falha ao cadastrar técnico.']);
+    }
+
+} catch (Exception $e) {
+    echo json_encode(['status' => 'erro', 'mensagem' => 'Erro no banco: ' . $e->getMessage()]);
 }

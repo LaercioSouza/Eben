@@ -1,4 +1,5 @@
 // Data service to handle all NDJSON operations
+/*
 const DATA_TYPES = {
   COMPANIES: 'companies',
   EMPLOYEES: 'employees',
@@ -521,3 +522,5 @@ dataService.initialize();
 
 // Export
 window.dataService = dataService;
+
+*/

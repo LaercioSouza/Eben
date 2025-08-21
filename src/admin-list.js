@@ -1391,26 +1391,40 @@ function getActionText(action) {
   */
 }
 
-function generatePerformanceCharts() {
-  const tasks = window.dataService.getAll(window.dataService.DATA_TYPES.TASKS);
+async function generatePerformanceCharts() {
+  try {
+    const response = await fetch("https://localhost/EBEN/api/get_performance_data.php");
+    const data = await response.json();
+    console.log(data)
 
-  if (!tasks || tasks.length === 0) {
-    alert('Nenhuma tarefa encontrada para análise de desempenho.');
-    return;
+    if (data.error) {
+      alert(data.error);
+      return;
+    }
+
+    // Renderizar gráficos com os dados do backend
+    renderChart(
+      'taskCompletionChart',
+      'Tarefas Concluídas',
+      ['Concluídas', 'Pendentes'],
+      [data.completedTasks, data.totalTasks - data.completedTasks]
+    );
+
+    renderChart(
+      'timeAnalysisChart',
+      'Tempo Médio (Horas)',
+      ['Trabalho', 'Translado'],
+      [data.avgWorkTime, data.avgTransitTime]
+    );
+
+  } catch (error) {
+    alert('Erro ao carregar dados: ' + error.message);
   }
 
-  // Aggregate data
-  const completedTasks = tasks.filter(task => task.status === 'concluida');
-  const totalTasks = tasks.length;
-  const avgWorkTime = calculateAverageTime(completedTasks, 'workTime');
-  const avgTransitTime = calculateAverageTime(completedTasks, 'transitTime');
-
-  // Render charts
-  renderChart('taskCompletionChart', 'Tarefas Concluídas', ['Concluídas', 'Pendentes'], [completedTasks.length, totalTasks - completedTasks.length]);
-  renderChart('timeAnalysisChart', 'Tempo Médio', ['Trabalho', 'Translado'], [avgWorkTime, avgTransitTime]);
 }
 
 function calculateAverageTime(tasks, timeField) {
+  console.log("chamou")
   const validTimes = tasks
     .map(task => task.report?.[timeField])
     .filter(time => time && time !== 'Informação não disponível');
