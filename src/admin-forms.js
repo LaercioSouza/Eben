@@ -395,7 +395,11 @@ function hidePreview() {
 
 async function fetchFormData(formId) {
   try {
+<<<<<<< HEAD
     const response = await fetch("https://step.tcbx.com.br/api/showformdescription.php", {
+=======
+    const response = await fetch("https://localhost/EBEN/api/showformdescription.php", {
+>>>>>>> 6ae232c7c61eb2224befb8c7dbf536cbeb0794d5
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -508,7 +512,11 @@ async function updateForm(formId) {
   };
 
   try {
+<<<<<<< HEAD
     const response = await fetch("https://step.tcbx.com.br/api/updateform.php", {
+=======
+    const response = await fetch("https://localhost/EBEN/api/updateform.php", {
+>>>>>>> 6ae232c7c61eb2224befb8c7dbf536cbeb0794d5
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(formData)

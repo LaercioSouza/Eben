@@ -205,7 +205,11 @@ async function loadSubsidiaries() {
   }
 
   try {
+<<<<<<< HEAD
     const response = await fetch(`https://step.tcbx.com.br/api/get_subsidiaries.php?empresaId=${empresaId}`);
+=======
+    const response = await fetch(`https://localhost/EBEN/api/get_subsidiaries.php?empresaId=${empresaId}`);
+>>>>>>> 6ae232c7c61eb2224befb8c7dbf536cbeb0794d5
     
     if (!response.ok) {
       throw new Error('Erro ao carregar filiais');
@@ -345,6 +349,19 @@ function validateTempoSugerido() {
             }
         }
 
+function getLocalISOString() {
+  const now = new Date();
+  const tzo = -now.getTimezoneOffset();
+  const pad = (num) => (num < 10 ? '0' : '') + num;
+  
+  return now.getFullYear() + '-' +
+    pad(now.getMonth() + 1) + '-' +
+    pad(now.getDate()) + ' ' +
+    pad(now.getHours()) + ':' +
+    pad(now.getMinutes()) + ':' +
+    pad(now.getSeconds());
+}
+
 // Save task using data service
 function saveTask(e) {
   e.preventDefault();
@@ -353,6 +370,7 @@ function saveTask(e) {
             }
 
   // Get form values
+<<<<<<< HEAD
               const empresa = document.getElementById('empresa').value;
             const subsidiary = document.getElementById('subsidiary')?.value || null;
             const colaborador = document.getElementById('colaborador').value;
@@ -401,6 +419,46 @@ function saveTask(e) {
                 ],
                 createdAt: startTime
             };
+=======
+  const empresa = document.getElementById('empresa').value;
+  const subsidiary = document.getElementById('subsidiary')?.value || null;
+  const colaborador = document.getElementById('colaborador').value;
+  const responsavel = document.getElementById('responsavel').value || '';
+  const data = document.getElementById('data').value;
+  const hora = document.getElementById('hora').value;
+  const tempoSugerido = document.getElementById('tempoSugerido').value || null;
+  const descricao = document.getElementById('descricao').value;
+  const coordinates = document.getElementById('coordinates').value;
+  const formulario = document.getElementById('formulario').value || null;
+  if (!empresa || !colaborador) {
+    alert('Por favor, selecione uma empresa e um técnico válidos');
+    return;
+  }
+  const startTime = getLocalISOString();
+   const task = {
+    id: Date.now(),
+    empresaid: empresa,
+    subsidiaria: subsidiary,
+    colaboradorid: colaborador,
+    responsavel: responsavel,
+    tempoSugerido: tempoSugerido ? decimalHoursToHHMMSS(parseFloat(tempoSugerido)) : null,
+    data: data,
+    hora: hora,
+    descricao: descricao,
+    coordinates: coordinates,
+    formularioNome: formulario,
+    formularioResposta: null, // Will be filled when technician completes the form
+    status: 'pendente', // initial status
+    history: [
+      {
+        timestamp: new Date().toISOString(),
+        action: 'criada',
+        coordinates: coordinates
+      }
+    ],
+    createdAt: startTime
+  };
+>>>>>>> 6ae232c7c61eb2224befb8c7dbf536cbeb0794d5
 
 
   fetch('https://step.tcbx.com.br/api/savetask.php', {
@@ -473,7 +531,25 @@ function saveCompany(e) {
     console.log('Resposta bruta:', text);
     alert(`Empresa ${companyName} cadastrada com sucesso!`);
     const form = JSON.parse(text);
+<<<<<<< HEAD
     // Reset form
+=======
+  })
+
+      /*
+       .then(response => response.json())
+       .then(data => {
+        console.log('Resposta do servidor:', data);
+        alert(`Empresa ${companyName} cadastrada com sucesso!`);
+      * 
+      })*/
+.catch(error => {
+  console.error('Erro ao enviar:', error);
+});
+
+  
+  // Reset form
+>>>>>>> 6ae232c7c61eb2224befb8c7dbf536cbeb0794d5
   document.getElementById('companyForm').reset();
   
   // Close modal
@@ -561,7 +637,11 @@ function saveEmployee(e) {
     createdAt: createdAt
   };
 
+<<<<<<< HEAD
   fetch("https://step.tcbx.com.br/api/employe.php", {
+=======
+  fetch("https://localhost/EBEN/api/employe.php", {
+>>>>>>> 6ae232c7c61eb2224befb8c7dbf536cbeb0794d5
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(employee)

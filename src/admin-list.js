@@ -646,7 +646,11 @@ function loadTaskHistory(task) {
     const historyList = document.getElementById('task-history-list');
     historyList.innerHTML = '<p class="text-muted">Carregando histórico...</p>';
 
+<<<<<<< HEAD
     fetch("https://step.tcbx.com.br/api/get_task_history.php", {
+=======
+    fetch("https://localhost/EBEN/api/get_task_history.php", {
+>>>>>>> 6ae232c7c61eb2224befb8c7dbf536cbeb0794d5
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ id: task.id })
@@ -1395,7 +1399,11 @@ function getActionText(action) {
 
 async function generatePerformanceCharts() {
   try {
+<<<<<<< HEAD
     const response = await fetch("https://step.tcbx.com.br/api/get_performance_data.php");
+=======
+    const response = await fetch("https://localhost/EBEN/api/get_performance_data.php");
+>>>>>>> 6ae232c7c61eb2224befb8c7dbf536cbeb0794d5
     const data = await response.json();
     console.log(data)
 
@@ -1407,7 +1415,11 @@ async function generatePerformanceCharts() {
     // Renderizar gráficos com os dados do backend
     renderChart(
       'taskCompletionChart',
+<<<<<<< HEAD
       'Tarefas',
+=======
+      'Tarefas Concluídas',
+>>>>>>> 6ae232c7c61eb2224befb8c7dbf536cbeb0794d5
       ['Concluídas', 'Pendentes'],
       [data.completedTasks, data.totalTasks - data.completedTasks]
     );

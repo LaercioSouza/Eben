@@ -3,7 +3,11 @@
 //user.js
 // Global variables
 let currentUserId = null;
+<<<<<<< HEAD
 let currentUserName = null;
+=======
+currentUserName = null;
+>>>>>>> 6ae232c7c61eb2224befb8c7dbf536cbeb0794d5
 let map = null;
 let userMarker = null;
 let taskMarkers = [];
@@ -47,6 +51,10 @@ function checkLogin() {
   } else {
     // User is not logged in
     showLoginPanel();
+<<<<<<< HEAD
+=======
+   // loadEmployees();
+>>>>>>> 6ae232c7c61eb2224befb8c7dbf536cbeb0794d5
   }
 }
 
@@ -55,8 +63,11 @@ function showLoginPanel() {
   console.log("Mostrando painel de login");
   document.getElementById('login-container').classList.remove('d-none');
   document.getElementById('user-panel').classList.add('d-none');
+<<<<<<< HEAD
   // Esconder a navbar
   document.querySelector('.navbar').classList.add('d-none');
+=======
+>>>>>>> 6ae232c7c61eb2224befb8c7dbf536cbeb0794d5
   
   // Clear login form fields
   document.getElementById('inputUsername').value = '';
@@ -83,9 +94,11 @@ function showUserPanel(userName) {
 }
 
 // Login function
+// Corrigir função login
 function login(e) {
   e.preventDefault();
   
+<<<<<<< HEAD
   const email = document.getElementById('inputUsername').value;
   const password = document.getElementById('inputPassword').value;
 
@@ -93,6 +106,15 @@ function login(e) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password })
+=======
+  const username = document.getElementById('inputUsername').value;
+  const password = document.getElementById('inputPassword').value;
+
+  fetch("https://localhost/EBEN/api/login.php", {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password })
+>>>>>>> 6ae232c7c61eb2224befb8c7dbf536cbeb0794d5
   })
   .then(response => response.json())
   .then(data => {
@@ -105,6 +127,7 @@ function login(e) {
       
       // VERIFICAÇÃO DO TIPO DE USUÁRIO (NOVO)
       if (data.user.tipe_user == 1) { // Usuário tipo 1 (Admin)
+<<<<<<< HEAD
         logout(e);
         window.location.href = 'admin.html'; // Redireciona para admin
         return; // Interrompe a execução
@@ -112,6 +135,22 @@ function login(e) {
       
       // CORREÇÃO: Chamar showUserPanel em vez de manipular a UI diretamente
       showUserPanel(currentUserName);
+=======
+        logout(e)
+        window.location.href = 'admin.html'; // Redireciona para admin
+
+        return; // Interrompe a execução
+      }
+      
+      // Código para usuários tipo 2 (Técnicos)
+      document.getElementById('current-user-name').textContent = currentUserName;
+      document.getElementById('login-container').classList.add('d-none');
+      document.getElementById('user-panel').classList.remove('d-none');
+      
+      loadTaskList();
+      startLocationTracking();
+      initializeMap();
+>>>>>>> 6ae232c7c61eb2224befb8c7dbf536cbeb0794d5
     } else {
       alert('Falha no login: ' + data.mensagem);
     }
