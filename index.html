@@ -4,8 +4,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sistema de Tarefas</title>
-  <meta name="description" content="Sistema de gerenciamento de tarefas" />
+  <title>Painel de Usuário - Sistema de Tarefas</title>
+  <meta name="description" content="Painel de usuário para visualização de tarefas" />
   <meta name="author" content="Task Generator" />
 
   <!-- Bootstrap CSS -->
@@ -14,37 +14,368 @@
   <!-- Bootstrap Icons -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
   <!-- Custom CSS -->
-  <link rel="stylesheet" href="./src/styles.css">
+  <link rel="stylesheet" href="/src/styles.css">
+
+  <style>
+    /* Estilos da tela de login personalizada */
+    .login-body {
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(to right, #64c888, #a7e8a3);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .login-container-custom {
+      background: transparent;
+      padding: 20px;
+      text-align: center;
+      width: 100%;
+      max-width: 400px;
+    }
+
+    .logo {
+      width: 140px;
+      margin-bottom: 20px;
+    }
+
+    .login-container-custom input {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 12px;
+      border: none;
+      border-radius: 6px;
+      background-color: #c8f9de;
+      font-size: 16px;
+      color: #222;
+    }
+
+    .login-container-custom button {
+      width: 100%;
+      padding: 12px;
+      background-color: #28a745; /* Cor equivalente ao btn-success do Bootstrap */
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      font-size: 16px;
+      color: white;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    .login-container-custom button:hover {
+      background-color: #218838; /* Cor hover equivalente */
+    }
+
+    /* Estilos para a câmera e outros elementos existentes */
+    .camera-container {
+      background-color: #f8f9fa;
+      border-radius: 5px;
+      overflow: hidden;
+    }
+
+    #camera-preview {
+      width: 100%;
+      max-height: 300px;
+      background-color: #000;
+    }
+
+    #photo-preview img {
+      max-width: 100%;
+      max-height: 200px;
+      border-radius: 5px;
+      border: 1px solid #dee2e6;
+    }
+  </style>
 </head>
 
 <body>
-  <div class="container-fluid">
-    <div class="row justify-content-center">
-      <div class="col-md-4">
-        <div class="task-card mt-5">
-          <h2 class="text-center mb-4">SISTEMA DE TAREFAS</h2>
+  <!-- Navbar com classe d-none para ficar escondida inicialmente -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-success d-none">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="#">Sistema de Tarefas</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav me-auto">
+          <li class="nav-item">
+            
+          </li>
+        </ul>
+        <ul class="navbar-nav" id="user-menu">
+          <li class="nav-item" id="user-info-container">
+            <span class="nav-link text-white">
+              <i class="bi bi-person-circle"></i> <span id="current-user-name">Usuário</span>
+            </span>
+          </li>
+          <li class="nav-item">
+            <a href = "user.html"class="nav-link" href="#" id="btn-logout">Sair</a>
+            
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
 
-          <div class="text-center mb-4">
-            <p>Selecione o tipo de acesso:</p>
+  <!-- Tela de Login com novo estilo -->
+  <div class="login-body" id="login-container">
+    <div class="login-container-custom">
+        <img src="logo-ticbox.svg" alt="Ticbox Sistemas" class="logo">
+        
+        <form id="loginForm">
+            <input type="text" id="inputUsername" placeholder="Email" required>
+            <input type="password" id="inputPassword" placeholder="Senha" required>
+            <button type="submit"> Login</button>
+        </form>
+    </div>
+  </div>
+
+  <!-- Painel do Usuário -->
+  <div class="container-fluid d-none" id="user-panel">
+    <div class="row mb-3 mt-3">
+      <div class="col-12">
+        <div class="alert alert-success" role="alert">
+          <div class="d-flex align-items-center">
+            <div id="status-indicator" class="me-2"
+              style="width: 10px; height: 10px; background-color: #28a745; border-radius: 50%;"></div>
+            <span id="location-status">Rastreando sua localização em tempo real...</span>
           </div>
+        </div>
+      </div>
+    </div>
 
-          <div class="d-grid gap-3">
-            <a href="admin.html" class="btn btn-success">Acesso Administrador</a>
-            <a href="user.html" class="btn btn-outline-success">Acesso Usuário</a>
+    <div class="row">
+      <div class="col-lg-5 col-md-12 mb-3">
+        <div class="task-card">
+          <h2 class="text-center mb-4">MINHAS TAREFAS</h2>
+          <div id="task-list" class="list-group">
+            <!-- As tarefas serão carregadas dinamicamente via JavaScript -->
+            <div class="text-center py-4 text-muted">
+              <p>Carregando tarefas...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-7 col-md-12">
+        <div class="task-card">
+          <h2 class="text-center mb-3">MAPA DE TAREFAS</h2>
+          <div id="map" class="map-container" style="height: 400px;"></div>
+          <div class="mt-2 text-center">
+            <small class="text-muted">Ponto verde: Sua localização atual | Pontos coloridos: Tarefas</small>
+            <div class="mt-2">
+              <span class="badge bg-danger me-2">Pendente</span>
+              <span class="badge bg-warning text-dark me-2">Em Translado</span>
+              <span class="badge bg-primary me-2">Em Andamento</span>
+              <span class="badge bg-info text-dark me-2">Pausada</span>
+              <span class="badge bg-success me-2">Concluída</span>
+              <span class="badge bg-dark">Cancelada</span> <!-- Adicionado status cancelada -->
+            </div>
           </div>
         </div>
       </div>
     </div>
   </div>
 
+  <!-- Task detail modal -->
+  <div class="modal fade" id="taskDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-success text-white">
+          <h5 class="modal-title">Detalhes da Tarefa</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body" id="task-detail-content">
+          <!-- Conteúdo será preenchido dinamicamente -->
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+          <!-- Botões de ação serão adicionados dinamicamente -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Cancelamento -->
+  <div class="modal fade" id="cancelTaskModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-danger text-white">
+          <h5 class="modal-title">Cancelar Tarefa</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="cancel-reason" class="form-label">Motivo do Cancelamento:</label>
+            <textarea class="form-control" id="cancel-reason" rows="3" required></textarea>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Tirar Foto do Local:</label>
+            <div class="camera-container mb-2 border rounded p-2 text-center bg-light">
+              <video id="camera-preview" autoplay playsinline class="w-100"></video>
+            </div>
+            <button type="button" class="btn btn-outline-primary w-100" id="capture-btn">
+              <i class="bi bi-camera"></i> Capturar Foto
+            </button>
+          </div>
+
+          <div id="photo-preview" class="text-center"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+          <button type="button" class="btn btn-danger" id="confirm-cancel-btn">
+            <i class="bi bi-check-circle"></i> Confirmar Cancelamento
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <!-- Bootstrap Bundle with Popper -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="./src/data-service.js"></script>
-  <script src="./src/user.js" type="module"></script>
+  <!-- Data Service -->
+  <script src="/src/data-service.js"></script>
+  <!-- Form Handler -->
+  <script src="/src/user-form-handler.js"></script>
+  <!-- Custom JS -->
+  <script src="/src/user.js"></script>
 
   <!-- IMPORTANT: DO NOT REMOVE THIS SCRIPT TAG OR THIS VERY COMMENT! -->
   <script src="https://cdn.gpteng.co/gptengineer.js" type="module"></script>
+
+  <script>
+    // Adicionar event listeners para o modal de cancelamento
+    document.addEventListener('DOMContentLoaded', function () {
+      // Botão de captura de foto
+      document.getElementById('capture-btn').addEventListener('click', function () {
+        const photoData = capturePhoto();
+        const preview = document.getElementById('photo-preview');
+        preview.innerHTML = `<img src="${photoData}" class="img-fluid rounded" alt="Foto do local">`;
+      });
+
+      // Botão de confirmar cancelamento
+      document.getElementById('confirm-cancel-btn').addEventListener('click', cancelTask);
+
+      // Parar câmera quando o modal for fechado
+      document.getElementById('cancelTaskModal').addEventListener('hidden.bs.modal', function () {
+        stopCamera();
+      });
+
+      // Funções auxiliares (também definidas em user.js, mas aqui para garantir)
+      function capturePhoto() {
+        const video = document.getElementById('camera-preview');
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        return canvas.toDataURL('image/jpeg');
+      }
+
+      function stopCamera() {
+        if (cameraStream) {
+          cameraStream.getTracks().forEach(track => track.stop());
+          cameraStream = null;
+        }
+      }
+    });
+  </script>
+
+  <script>
+    // Código para prevenir acesso através do botão "voltar" do navegador
+    (function() {
+      // Flag para verificar se estamos no meio de um logout
+      let isLoggingOut = false;
+      
+      // Sobrescrever a função de logout original para adicionar o comportamento de prevenção
+      const originalLogout = window.logout;
+      
+      window.logout = function(e) {
+        if (isLoggingOut) return;
+        isLoggingOut = true;
+        
+        // Limpar dados de autenticação
+        localStorage.removeItem('currentUserId');
+        localStorage.removeItem('currentUserName');
+        localStorage.removeItem('sessionActive');
+        
+        // Chamar a função original se existir
+        if (typeof originalLogout === 'function') {
+          originalLogout(e);
+        } else {
+          // Comportamento padrão se a função original não existir
+          document.getElementById('login-container').classList.remove('d-none');
+          document.getElementById('user-panel').classList.add('d-none');
+          document.querySelector('.navbar').classList.add('d-none');
+        }
+        
+        // Prevenir que o navegador volte para esta página
+        history.pushState(null, null, window.location.href);
+        
+        // Resetar a flag após um pequeno delay
+        setTimeout(() => { isLoggingOut = false; }, 1000);
+      };
+      
+      // Verificar se a página está sendo acessada através do botão "voltar"
+      window.addEventListener('pageshow', function(event) {
+        // Se a página foi carregada do cache (back/forward)
+        if (event.persisted || performance.navigation.type === 2) {
+          const sessionActive = localStorage.getItem('sessionActive');
+          const currentUserId = localStorage.getItem('currentUserId');
+          
+          // Se não há sessão ativa mas há ID de usuário, fazer logout
+          if (sessionActive !== 'true' && currentUserId) {
+            // Simular um evento de clique para logout
+            const logoutEvent = new Event('click');
+            document.getElementById('btn-logout').dispatchEvent(logoutEvent);
+          }
+        }
+      });
+      
+      // Marcar a sessão como ativa ao fazer login
+      const originalLogin = window.login;
+      window.login = function(e) {
+        if (typeof originalLogin === 'function') {
+          const result = originalLogin(e);
+          localStorage.setItem('sessionActive', 'true');
+          return result;
+        }
+      };
+      
+      // Adicionar estado inicial ao histórico
+      if (history.state === null) {
+        history.replaceState({ isInitial: true }, '');
+      }
+      
+      // Manipular o botão "voltar" do navegador
+      window.addEventListener('popstate', function(event) {
+        const currentUserId = localStorage.getItem('currentUserId');
+        
+        // Se o usuário está logado e tenta usar o botão "voltar"
+        if (currentUserId) {
+          // Forçar logout imediato
+          const logoutEvent = new Event('click');
+          document.getElementById('btn-logout').dispatchEvent(logoutEvent);
+          
+          // Prevenir navegação adicional
+          history.pushState(null, null, window.location.href);
+        }
+      });
+      
+      // Adicionar estado ao histórico quando a página carrega
+      history.pushState(null, null, window.location.href);
+    })();
+  </script>
 </body>
 
 </html>

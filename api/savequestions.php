@@ -9,9 +9,10 @@ header("Content-type: text/plain; charset=utf-8");
 // salvar as questões no banco
 
 $host = 'localhost';
-$db = 'dashboard_db';
-$user = 'root';
-$pass = '';
+$db = 'somos220_step_tcbx';
+$user = 'somos220_orbecode';
+$pass = 'oc#web@2025';
+
 
 $pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8", $user, $pass);
 
@@ -41,9 +42,16 @@ try {
 
     foreach ($questions as $q) {
         // Valida campos obrigatórios
+        /*
         if (!isset($q['id'], $q['id_formulario'], $q['text'], $q['type'], $q['required'])) {
             throw new Exception("Pergunta incompleta: " . json_encode($q));
         }
+        */
+
+        if (!isset($q['id_formulario'], $q['text'], $q['type'], $q['required'])) {
+            throw new Exception("Pergunta incompleta: " . json_encode($q));
+        }
+       
 
  
         $id_formulario = (int)$q['id_formulario'];

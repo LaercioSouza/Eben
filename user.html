@@ -53,7 +53,7 @@
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav me-auto">
           <li class="nav-item">
-            <a class="nav-link active" href="user.html">Minhas Tarefas</a>
+            
           </li>
         </ul>
         <ul class="navbar-nav" id="user-menu">
@@ -63,7 +63,8 @@
             </span>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="#" id="btn-logout">Sair</a>
+            <a href = "user.html"class="nav-link" href="#" id="btn-logout">Sair</a>
+            
           </li>
         </ul>
       </div>
@@ -72,33 +73,34 @@
 
   <!-- Tela de Login -->
   <div class="container-fluid" id="login-container">
-    <div class="row justify-content-center">
-      <div class="col-md-4">
-        <div class="task-card mt-5">
-          <h2 class="text-center mb-4">ACESSO TÉCNICO</h2>
+  <div class="row justify-content-center">
+    <div class="col-md-4">
+      <div class="task-card mt-5">
+        <h2 class="text-center mb-4">ACESSO AO SISTEMA</h2>
 
-          <form id="loginForm">
-            <div class="mb-4">
-              <label for="userSelect" class="form-label">Selecione seu usuário:</label>
-              <select class="form-select" id="userSelect" required>
-                <option value="">Selecione seu usuário</option>
-                <!-- Opções serão carregadas dinamicamente -->
-              </select>
-            </div>
+        <form id="loginForm">
+          <div class="mb-3">
+            <label for="inputUsername" class="form-label">Telefone ou ID:</label>
+            <input type="text" class="form-control" id="inputUsername" 
+                   placeholder="Digite seu telefone ou ID" required>
+          </div>
+          
+          <div class="mb-4">
+            <label for="inputPassword" class="form-label">Senha:</label>
+            <input type="password" class="form-control" id="inputPassword" 
+                   placeholder="Digite sua senha" required>
+          </div>
 
-            <div class="d-grid">
-              <button type="submit" class="btn btn-success">Acessar Sistema</button>
-            </div>
+          <div class="d-grid">
+            <button type="submit" class="btn btn-success">Acessar Sistema</button>
+          </div>
 
-            <div class="mt-3 text-center">
-              <a href="index.html">Voltar para a tela inicial</a>
-            </div>
-          </form>
-        </div>
+          
+        </form>
       </div>
     </div>
   </div>
-
+</div>
   <!-- Painel do Usuário -->
   <div class="container-fluid d-none" id="user-panel">
     <div class="row mb-3 mt-3">

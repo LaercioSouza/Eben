@@ -112,13 +112,19 @@
                 <input type="time" class="form-control" id="hora" required>
               </div>
             </div>
-
             <div class="mb-3">
-              <label for="tempoSugerido" class="form-label">Tempo Sugerido (horas):</label>
-              <input type="number" class="form-control" id="tempoSugerido" min="0.5" max="24" step="0.5"
-                placeholder="Ex: 2.5">
-              <small class="form-text text-muted">Tempo estimado em horas para conclusão da tarefa.</small>
-            </div>
+                  <label for="tempoSugerido" class="form-label">Tempo Sugerido:</label>
+                  <div class="input-group" id="tempoSugeridoGroup">
+                  <input type="number" class="form-control" id="tempoSugeridoHoras" min="0" max="23" step="1" placeholder="Horas" value="0">
+                       <span class="input-group-text">h</span>
+                       <input type="number" class="form-control" id="tempoSugeridoMinutos" min="0" max="59" step="1" placeholder="Minutos" value="0">
+                       <span class="input-group-text">min</span>
+                        </div>
+                        <div class="invalid-feedback" id="tempoSugeridoError">
+                            Por favor, informe pelo menos um valor para horas ou minutos.
+                         </div>
+                        <small class="form-text text-muted">Tempo estimado para conclusão da tarefa (máximo 23h 59min).</small>
+                        </div>
 
             <div class="mb-3">
               <label for="descricao" class="form-label">Descrição do Atendimento:</label>
@@ -211,34 +217,38 @@
 
   <!-- Modal de Cadastro de Funcionário -->
   <div class="modal fade" id="employeeModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header bg-success text-white">
-          <h5 class="modal-title">Cadastrar Novo Técnico</h5>
-          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-          <form id="employeeForm">
-            <div class="mb-3">
-              <label for="employeeName" class="form-label">Nome do Técnico:</label>
-              <input type="text" class="form-control" id="employeeName" required>
-            </div>
-            <div class="mb-3">
-              <label for="employeePosition" class="form-label">Cargo:</label>
-              <input type="text" class="form-control" id="employeePosition" required>
-            </div>
-            <div class="mb-3">
-              <label for="employeePhone" class="form-label">Telefone:</label>
-              <input type="tel" class="form-control" id="employeePhone" required>
-            </div>
-            <div class="d-grid">
-              <button type="submit" class="btn btn-success">Cadastrar Técnico</button>
-            </div>
-          </form>
-        </div>
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title">Cadastrar Novo Técnico</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="employeeForm">
+          <div class="mb-3">
+            <label for="employeeName" class="form-label">Nome do Técnico:</label>
+            <input type="text" class="form-control" id="employeeName" required>
+          </div>
+          <div class="mb-3">
+            <label for="employeeEmail" class="form-label">E-mail:</label>
+            <input type="email" class="form-control" id="employeeEmail" required>
+          </div>
+          <div class="mb-3">
+            <label for="employeePosition" class="form-label">Cargo:</label>
+            <input type="text" class="form-control" id="employeePosition" required>
+          </div>
+          <div class="mb-3">
+            <label for="employeePhone" class="form-label">Telefone:</label>
+            <input type="tel" class="form-control" id="employeePhone" required>
+          </div>
+          <div class="d-grid">
+            <button type="submit" class="btn btn-success">Cadastrar Técnico</button>
+          </div>
+        </form>
       </div>
     </div>
   </div>
+</div>
 
   <!-- Modal de Gerenciamento de Técnicos -->
   <div class="modal fade" id="manageEmployeesModal" tabindex="-1" aria-hidden="true">
@@ -254,6 +264,7 @@
               <thead>
                 <tr>
                   <th>Nome</th>
+                  <th>Email</th>
                   <th>Cargo</th>
                   <th>Telefone</th>
                   <th>Ações</th>

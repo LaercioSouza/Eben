@@ -1,6 +1,9 @@
 //user.js
 // Global variables
+//user.js
+// Global variables
 let currentUserId = null;
+let currentUserName = null;
 let map = null;
 let userMarker = null;
 let taskMarkers = [];
@@ -20,11 +23,6 @@ document.addEventListener('DOMContentLoaded', function () {
   // Event listeners
   document.getElementById('loginForm').addEventListener('submit', login);
   document.getElementById('btn-logout').addEventListener('click', logout);
-
-  // Load task list if user is logged in
-  if (currentUserId) {
-    loadTaskList();
-  }
 
   // Event listeners para cancelamento
   document.getElementById('capture-btn').addEventListener('click', function () {
@@ -49,20 +47,29 @@ function checkLogin() {
   } else {
     // User is not logged in
     showLoginPanel();
-    loadEmployees();
   }
 }
 
 // Show login panel
 function showLoginPanel() {
+  console.log("Mostrando painel de login");
   document.getElementById('login-container').classList.remove('d-none');
   document.getElementById('user-panel').classList.add('d-none');
+  // Esconder a navbar
+  document.querySelector('.navbar').classList.add('d-none');
+  
+  // Clear login form fields
+  document.getElementById('inputUsername').value = '';
+  document.getElementById('inputPassword').value = '';
 }
 
 // Show user panel
 function showUserPanel(userName) {
+  console.log("Mostrando painel do usuário: " + userName);
   document.getElementById('login-container').classList.add('d-none');
   document.getElementById('user-panel').classList.remove('d-none');
+  // Mostrar a navbar
+  document.querySelector('.navbar').classList.remove('d-none');
   document.getElementById('current-user-name').textContent = userName;
 
   // Initialize the map
@@ -78,35 +85,41 @@ function showUserPanel(userName) {
 // Login function
 function login(e) {
   e.preventDefault();
+  
+  const email = document.getElementById('inputUsername').value;
+  const password = document.getElementById('inputPassword').value;
 
-  const userId = document.getElementById('userSelect').value;
-  if (!userId) {
-    alert('Por favor, selecione um usuário');
-    return;
-  }
-
-  fetch("https://localhost/EBEN/api/listemploye.php")
-    .then(response => response.json())
-    .then(users => {
-      const user = users.find(u => u.id === userId || u.id === parseInt(userId));
-
-      if (!user) {
-        alert('Usuário não encontrado');
-        return;
+  fetch("https://step.tcbx.com.br/api/login.php", {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password })
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.status === 'sucesso') {
+      currentUserId = data.user.id;
+      currentUserName = data.user.nome;
+      
+      localStorage.setItem('currentUserId', currentUserId);
+      localStorage.setItem('currentUserName', currentUserName);
+      
+      // VERIFICAÇÃO DO TIPO DE USUÁRIO (NOVO)
+      if (data.user.tipe_user == 1) { // Usuário tipo 1 (Admin)
+        logout(e);
+        window.location.href = 'admin.html'; // Redireciona para admin
+        return; // Interrompe a execução
       }
-
-      // Definir o usuário atual
-      currentUserId = user.id;
       
-
-      // Exibir painel do usuário
-      showUserPanel(user.nome);
-      
-    })
-    .catch(error => {
-      console.error('Erro ao carregar funcionários:', error);
-      alert('Erro ao tentar fazer login. Verifique sua conexão.');
-    });
+      // CORREÇÃO: Chamar showUserPanel em vez de manipular a UI diretamente
+      showUserPanel(currentUserName);
+    } else {
+      alert('Falha no login: ' + data.mensagem);
+    }
+  })
+  .catch(error => {
+    console.error('Erro:', error);
+    alert('Erro ao tentar fazer login');
+  });
 }
 
 // Logout function
@@ -117,16 +130,23 @@ function logout(e) {
   localStorage.removeItem('currentUserId');
   localStorage.removeItem('currentUserName');
   currentUserId = null;
+  
+  // Reset user name display
+  document.getElementById('current-user-name').textContent = 'Usuário';
+  
+  // Clear login form fields
+  document.getElementById('inputUsername').value = '';
+  document.getElementById('inputPassword').value = '';
 
   // Stop location tracking
   stopLocationTracking();
 
   // Show login panel
   showLoginPanel();
-  loadEmployees();
 }
 
 // Load employees for login select
+/*
 function loadEmployees() {
   fetch("https://localhost/EBEN/api/listemploye.php")
     .then(response => response.json())
@@ -145,24 +165,8 @@ function loadEmployees() {
       console.error('Erro ao carregar funcionários:', error)
     });
 
-  /*
-  const userSelect = document.getElementById('userSelect');
-
-  // Get employees from data service
-  const employees = window.dataService.getAll(window.dataService.DATA_TYPES.EMPLOYEES);
-
-  // Clear existing options
-  userSelect.innerHTML = '<option value="">Selecione seu usuário</option>';
-
-  // Add each employee as an option
-  employees.forEach(employee => {
-    const option = document.createElement('option');
-    option.value = employee.id;
-    option.textContent = employee.nome;
-    userSelect.appendChild(option);
-  });
-  */
 }
+*/
 
 // Initialize map
 function initializeMap() {
@@ -217,7 +221,7 @@ function startLocationTracking() {
 // Update location
 function updateLocation(position) {
   const { latitude, longitude } = position.coords;
-  currentCoordinates = `${longitude},${latitude}`;
+  currentCoordinates = `${latitude},${longitude}`;
 
   // Update marker position
   if (userMarker) {
@@ -278,7 +282,7 @@ function loadTaskList() {
 
   const taskList = document.getElementById('task-list');
 
-  fetch("https://localhost/EBEN/api/tasklist.php")
+  fetch("https://step.tcbx.com.br/api/tasklist.php")
     .then(response => response.json())
     .then(tasks => {
       
@@ -546,7 +550,9 @@ function addTaskMarker(task, completed = false) {
   if (!map) return;
 
   // Parse coordinates
-  const [lng, lat] = task.coordinates.split(',').map(parseFloat);
+  // Parse coordinates
+const [lat, lng] = task.coordinates.split(',').map(parseFloat);
+
 
   // Choose icon color based on task status
   let iconColor = 'red'; // Default for pending
@@ -617,7 +623,7 @@ function clearTaskMarkers() {
 function showTaskDetails(taskId) {
   const idSelect =  {id: taskId};
     // Fazer requisição à API para obter os detalhes da tarefa
-  fetch("https://localhost/EBEN/api/showtaskid.php", {
+  fetch("https://step.tcbx.com.br/api/showtaskid.php", {
     method: 'POST',
     headers: {
         'Content-Type':'application/json'
@@ -849,6 +855,7 @@ if (task.transitTime || task.workTime || task.pauseTime || task.returnTransitTim
     .catch(error => {
       console.error('Erro ao carregar detalhes da tarefa:', error);
     });
+    console.log(currentCoordinates)
 }
 
 // Start transit function
@@ -885,7 +892,7 @@ function startTransit() {
   };
 
   // Enviar atualização para o servidor
-  fetch("https://localhost/EBEN/api/updateTaskStatus.php", {
+  fetch("https://step.tcbx.com.br/api/updateTaskStatus.php", {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -944,7 +951,7 @@ function endTransit() {
   };
   
   // Enviar atualização para o servidor
-  fetch("https://localhost/EBEN/api/updateTaskStatus.php", {
+  fetch("https://step.tcbx.com.br/api/updateTaskStatus.php", {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -1005,7 +1012,7 @@ function startTask() {
   };
 
   // Enviar atualização para o servidor
-  fetch("https://localhost/EBEN/api/updateTaskStatus.php", {
+  fetch("https://step.tcbx.com.br/api/updateTaskStatus.php", {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -1068,7 +1075,7 @@ function pauseTask() {
   };
 
   // Enviar requisição para iniciar a pausa
-  fetch("https://localhost/EBEN/api/pauseTask.php", {
+  fetch("https://step.tcbx.com.br/api/pauseTask.php", {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -1123,7 +1130,7 @@ function resumeTask() {
   };
 
   // Enviar requisição para terminar a pausa
-  fetch("https://localhost/EBEN/api/resumeTask.php", {
+  fetch("https://step.tcbx.com.br/api/resumeTask.php", {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -1174,7 +1181,7 @@ function completeTask() {
   }
 
   // Verificar se a tarefa tem formulário
-  fetch("https://localhost/EBEN/api/formdescription.php", {
+  fetch("https://step.tcbx.com.br/api/formdescription.php", {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ task_id: currentTask.id })
@@ -1209,7 +1216,7 @@ function finalizarTarefaSemFormulario() {
     completionObservations: observations
   };
 
-  fetch("https://localhost/EBEN/api/updateTaskStatus.php", {
+  fetch("https://step.tcbx.com.br/api/updateTaskStatus.php", {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(updateData)
@@ -1266,7 +1273,7 @@ function startReturnTransit() {
   };
 
   // Enviar atualização para o servidor
-  fetch("https://localhost/EBEN/api/updateTaskStatus.php", {
+  fetch("https://step.tcbx.com.br/api/updateTaskStatus.php", {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -1326,7 +1333,7 @@ function endReturnTransit() {
   };
 
   // Enviar atualização para o servidor
-  fetch("https://localhost/EBEN/api/updateTaskStatus.php", {
+  fetch("https://step.tcbx.com.br/api/updateTaskStatus.php", {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -1384,7 +1391,7 @@ function finalizeTask() {
   };
 
   // Enviar atualização para o servidor
-  fetch("https://localhost/EBEN/api/updateTaskStatus.php", {
+  fetch("https://step.tcbx.com.br/api/updateTaskStatus.php", {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -1472,7 +1479,7 @@ function capturePhoto() {
 
 
 
-    fetch("https://localhost/EBEN/api/cancel_task.php", {
+    fetch("https://step.tcbx.com.br/api/cancel_task.php", {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -1650,7 +1657,7 @@ function saveTaskFormAnswers(taskId, form, modal) {
     }
   };
 
-  fetch("https://localhost/EBEN/api/salvar-respostas-e-atualizar-tarefa.php", {
+  fetch("https://step.tcbx.com.br/api/salvar-respostas-e-atualizar-tarefa.php", {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
@@ -1700,7 +1707,7 @@ function saveTaskFormAnswers(taskId, form, modal) {
     completionObservations: observations
   };
 
-  fetch("https://localhost/EBEN/api/updateTaskStatus.php", {
+  fetch("https://step.tcbx.com.br/api/updateTaskStatus.php", {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(updateData)

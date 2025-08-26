@@ -103,46 +103,48 @@ function openTaskDetails(taskId) {
 function loadTasks() {
   const tasksTableBody = document.getElementById('tasks-table-body');
   const noTasksMessage = document.getElementById('no-tasks-message');
-   fetch("https://localhost/Eben/api/tasklist.php")
-  .then(response => response.json())
-  .then(task_json => {
-    // Aqui você pode trabalhar com os dados retornados
-    tasks = applyFilters(task_json);
-    if (tasks.length === 0) {
-    tasksTableBody.innerHTML = '';
-    noTasksMessage.classList.remove('d-none');
-    return;
-    }
-    noTasksMessage.classList.add('d-none');
-    task_json.forEach(task => {
-    tasksTableBody.innerHTML = task_json.map(task => {
-    const [year, month, day] = task.data_tarefa.split('-');
-    const formattedDate = `${day}/${month}/${year}`;
-    const statusClass = getStatusClass(task.status);
-    return `
-      <tr class="task-row" onclick="showTaskDetail(${task.id})">
-        <td>${task.empresa}</td>
-        <td>${task.colaborador}</td>
-        <td>${formattedDate}</td>
-        <td>${task.hora_tarefa}</td>
-        <td><span class="status-badge status-${statusClass}">${getStatusText(task.status)}</span></td>
-      </tr>
-    `;
-  }).join('');
-   // Adiciona os event listeners após criar as linhas
-    document.querySelectorAll('.task-row').forEach(row => {
-    row.addEventListener('click', function () {
-    const taskId = parseInt(this.getAttribute('data-id'));
-    showTaskDetail(taskId);
-    });
-  });
-    }) 
-  })
-  .catch(error => {
-    console.error('Erro ao carregar empresas:', error);
-  });
   
- 
+  fetch("https://step.tcbx.com.br/api/tasklist.php")
+    .then(response => response.json())
+    .then(task_json => {
+      const tasks = applyFilters(task_json); // Aplica filtros
+      
+      if (tasks.length === 0) {
+        tasksTableBody.innerHTML = '';
+        noTasksMessage.classList.remove('d-none');
+        return;
+      }
+      
+      noTasksMessage.classList.add('d-none');
+      
+      // Renderiza as TAREFAS FILTRADAS (não o task_json original)
+      tasksTableBody.innerHTML = tasks.map(task => {
+        const [year, month, day] = task.data_tarefa.split('-');
+        const formattedDate = `${day}/${month}/${year}`;
+        const statusClass = getStatusClass(task.status);
+        
+        return `
+          <tr class="task-row" data-id="${task.id}">
+            <td>${task.empresa}</td>
+            <td>${task.colaborador}</td>
+            <td>${formattedDate}</td>
+            <td>${task.hora_tarefa}</td>
+            <td><span class="status-badge status-${statusClass}">${getStatusText(task.status)}</span></td>
+          </tr>
+        `;
+      }).join('');
+
+      // Adiciona os event listeners
+      document.querySelectorAll('.task-row').forEach(row => {
+        row.addEventListener('click', function() {
+          const taskId = parseInt(this.getAttribute('data-id'));
+          showTaskDetail(taskId);
+        });
+      });
+    })
+    .catch(error => {
+      console.error('Erro ao carregar tarefas:', error);
+    });
 }
 
 // Apply filters to tasks
@@ -153,8 +155,8 @@ function applyFilters(tasks) {
   let filteredTasks = tasks;
 
   if (dateFilter) {
+    // Compara diretamente no formato YYYY-MM-DD (sem converter)
     filteredTasks = filteredTasks.filter(task => task.data_tarefa === dateFilter);
-    
   }
 
   if (statusFilter !== 'all') {
@@ -224,8 +226,8 @@ function initDetailMap(coordinates) {
 
   if (coordinates) {
     const coords = coordinates.split(',');
-    initialLng = parseFloat(coords[0]);
-    initialLat = parseFloat(coords[1]);
+    initialLat = parseFloat(coords[0]);
+    initialLng = parseFloat(coords[1]);
   }
 
   detailMap = L.map('detail-map').setView([initialLat, initialLng], 15);
@@ -270,7 +272,7 @@ function showTaskDetail(taskId) {
   
   
   const payload = { id: taskId };  
-  fetch("https://localhost/EBEN/api/showdetailstask.php", {
+  fetch("https://step.tcbx.com.br/api/showdetailstask.php", {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -642,70 +644,69 @@ function setupCollapsibleHistory() {
 
 function loadTaskHistory(task) {
     const historyList = document.getElementById('task-history-list');
-  historyList.innerHTML = '<p class="text-muted">Carregando histórico...</p>';
+    historyList.innerHTML = '<p class="text-muted">Carregando histórico...</p>';
 
-  fetch("https://localhost/EBEN/api/get_task_history.php", {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({ id: task.id })
-  })
-  .then(response => response.json())
-  .then(historyData => {
-    console.log('Dados do histórico:', historyData);
-    const history = historyData.history;
+    fetch("https://step.tcbx.com.br/api/get_task_history.php", {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ id: task.id })
+    })
+    .then(response => response.json())
+    .then(historyData => {
+        console.log('Dados do histórico:', historyData);
+        const history = historyData.history;
 
-    if (!history || history.length === 0) {
-        historyList.innerHTML = '<p class="text-muted">Nenhum histórico disponível</p>';
-        return;
-      }
+        if (!history || history.length === 0) {
+            historyList.innerHTML = '<p class="text-muted">Nenhum histórico disponível</p>';
+            return;
+        }
 
-    // Usa os dados na ordem original da API
-    const historyHtml = history.map(entry => {
-      const date = new Date(entry.timestamp);
-      const formattedDate = date.toLocaleDateString('pt-BR');
-      const formattedTime = date.toLocaleTimeString('pt-BR');
-      
-      // Extrai coordenadas (se existirem)
-      let locationInfo = 'Localização não disponível';
-      let coords = null;
-      
-      if (entry.coordinates) {
-        coords = entry.coordinates.split(',');
-        locationInfo = `Lat: ${parseFloat(coords[1]).toFixed(6)}, Lng: ${parseFloat(coords[0]).toFixed(6)}`;
-      }
-
-      return `
-        <div class="border-start border-primary ps-3 mb-3">
-          <div class="d-flex justify-content-between align-items-start">
-            <div>
-              <div class="fw-bold">${getActionText(entry.action)}</div>
-              <small class="text-muted">${formattedDate} às ${formattedTime}</small>
-              <br><small class="text-info">${locationInfo}</small>
-              ${entry.observations ? `<br><small class="text-secondary"><strong>Observações:</strong> ${entry.observations}</small>` : ''}
-              ${entry.reason ? `<br><small class="text-warning"><strong>Motivo:</strong> ${entry.reason}</small>` : ''}
-            </div>
-            ${coords ? 
-              `<button class="btn btn-sm btn-outline-primary" 
-                onclick="showLocationOnMap('${coords[1]}', '${coords[0]}', '${getActionText(entry.action)}')">
-                Ver no Mapa
-              </button>` : 
-              ''
+        // Usa os dados na ordem original da API
+        const historyHtml = history.map(entry => {
+            // CORREÇÃO AQUI: Usar formatDateTimeSafe diretamente no timestamp
+            const formattedDateTime = formatDateTimeSafe(entry.timestamp);
+            
+            // Extrai coordenadas (se existirem)
+            let locationInfo = 'Localização não disponível';
+            let coords = null;
+            
+            if (entry.coordinates) {
+                coords = entry.coordinates.split(',');
+                locationInfo = `Lat: ${parseFloat(coords[0]).toFixed(6)}, Lng: ${parseFloat(coords[1]).toFixed(6)}`;
             }
-          </div>
-        </div>
-      `;
-    }).join('');
 
-    historyList.innerHTML = historyHtml;
-  })
-  .catch(error => {
-    console.error('Erro ao carregar histórico:', error);
-    historyList.innerHTML = '<p class="text-danger">Erro ao carregar histórico</p>';
-  });
+            return `
+                <div class="border-start border-primary ps-3 mb-3">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="fw-bold">${getActionText(entry.action)}</div>
+                            <small class="text-muted">${formattedDateTime}</small>
+                            <br><small class="text-info">${locationInfo}</small>
+                            ${entry.observations ? `<br><small class="text-secondary"><strong>Observações:</strong> ${entry.observations}</small>` : ''}
+                            ${entry.reason ? `<br><small class="text-warning"><strong>Motivo:</strong> ${entry.reason}</small>` : ''}
+                        </div>
+                        ${coords ? 
+                            `<button class="btn btn-sm btn-outline-primary" 
+                                onclick="showLocationOnMap('${coords[0]}', '${coords[1]}', '${getActionText(entry.action)}')">
+                                Ver no Mapa
+                            </button>` : 
+                            ''
+                        }
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        historyList.innerHTML = historyHtml;
+    })
+    .catch(error => {
+        console.error('Erro ao carregar histórico:', error);
+        historyList.innerHTML = '<p class="text-danger">Erro ao carregar histórico</p>';
+    });
 }
 
 function showFormResponses(task) {
-  fetch("https://localhost/EBEN/api/showformdetails.php", {
+  fetch("https://step.tcbx.com.br/api/showformdetails.php", {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({ id: task.id })
@@ -807,15 +808,20 @@ function showLocationOnMap(lat, lng, title) {
 // ======================================================
 // Função para formatar data/hora de forma segura
 // ======================================================
+// Função modificada
 function formatDateTimeSafe(dateTime) {
-  if (!dateTime || dateTime === 'null' || dateTime === null) {
-    return '—'; // Mostra traço quando não tem data
+  // Se já for um objeto Date válido
+  if (dateTime instanceof Date && !isNaN(dateTime.getTime())) {
+    return dateTime.toLocaleString('pt-BR', { hour12: false });
   }
-  const date = new Date(dateTime);
-  if (isNaN(date.getTime())) {
+  
+  // Se for string/number/outro formato
+  if (!dateTime || dateTime === 'null' || dateTime === null) {
     return '—';
   }
-  return date.toLocaleString('pt-BR', { hour12: false });
+  
+  const date = new Date(dateTime);
+  return isNaN(date.getTime()) ? '—' : date.toLocaleString('pt-BR', { hour12: false });
 }
 
 async function exportIndividualTaskToPDF(taskId) {
@@ -823,7 +829,7 @@ async function exportIndividualTaskToPDF(taskId) {
   const doc = new jsPDF();
   const payload = { id: taskId };
   
-  fetch("https://localhost/EBEN/api/relatoryid.php", {
+  fetch("https://step.tcbx.com.br/api/relatoryid.php", {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
@@ -941,7 +947,7 @@ async function exportIndividualTaskToPDF(taskId) {
         doc.setFontSize(10);
         doc.text(`${i + 1}. ${getActionText(entry.action)}`, 20, yPos);
         yPos += 5;
-        doc.text(`   Data/Hora: ${formatDateTimeSafe(formattedDateTime)}`, 25, yPos);
+        doc.text(`   Data/Hora: ${formatDateTimeSafe(entry.timestamp)}`, 25, yPos);
         yPos += 5;
 
         if (entry.coordinates) {
@@ -1209,7 +1215,7 @@ async function exportToPDF() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
 
-  fetch("https://localhost/EBEN/api/relatory.php", {
+  fetch("https://step.tcbx.com.br/api/relatory.php", {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
   })
@@ -1322,7 +1328,7 @@ function deleteTask(taskId) {
   if (!confirmDelete) return; // Se o usuário cancelar, para aqui
 
   const idSelect = { id: taskId };
-  fetch("https://localhost/EBEN/api/delete_task.php", {
+  fetch("https://step.tcbx.com.br/api/delete_task.php", {
          method: 'POST',
          headers: {
         'Content-Type': 'application/json'
@@ -1387,26 +1393,40 @@ function getActionText(action) {
   */
 }
 
-function generatePerformanceCharts() {
-  const tasks = window.dataService.getAll(window.dataService.DATA_TYPES.TASKS);
+async function generatePerformanceCharts() {
+  try {
+    const response = await fetch("https://step.tcbx.com.br/api/get_performance_data.php");
+    const data = await response.json();
+    console.log(data)
 
-  if (!tasks || tasks.length === 0) {
-    alert('Nenhuma tarefa encontrada para análise de desempenho.');
-    return;
+    if (data.error) {
+      alert(data.error);
+      return;
+    }
+
+    // Renderizar gráficos com os dados do backend
+    renderChart(
+      'taskCompletionChart',
+      'Tarefas',
+      ['Concluídas', 'Pendentes'],
+      [data.completedTasks, data.totalTasks - data.completedTasks]
+    );
+
+    renderChart(
+      'timeAnalysisChart',
+      'Tempo Médio (Horas)',
+      ['Trabalho', 'Translado'],
+      [data.avgWorkTime, data.avgTransitTime]
+    );
+
+  } catch (error) {
+    alert('Erro ao carregar dados: ' + error.message);
   }
 
-  // Aggregate data
-  const completedTasks = tasks.filter(task => task.status === 'concluida');
-  const totalTasks = tasks.length;
-  const avgWorkTime = calculateAverageTime(completedTasks, 'workTime');
-  const avgTransitTime = calculateAverageTime(completedTasks, 'transitTime');
-
-  // Render charts
-  renderChart('taskCompletionChart', 'Tarefas Concluídas', ['Concluídas', 'Pendentes'], [completedTasks.length, totalTasks - completedTasks.length]);
-  renderChart('timeAnalysisChart', 'Tempo Médio', ['Trabalho', 'Translado'], [avgWorkTime, avgTransitTime]);
 }
 
 function calculateAverageTime(tasks, timeField) {
+  console.log("chamou")
   const validTimes = tasks
     .map(task => task.report?.[timeField])
     .filter(time => time && time !== 'Informação não disponível');

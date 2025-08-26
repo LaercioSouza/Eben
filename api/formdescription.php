@@ -6,9 +6,10 @@ header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-W
 header("Content-type: application/json; charset=utf-8"); // ✅ Mantém apenas essa
 
 $host = 'localhost';
-$db = 'dashboard_db';
-$user = 'root';
-$pass = '';
+$db = 'somos220_step_tcbx';
+$user = 'somos220_orbecode';
+$pass = 'oc#web@2025';
+
 
 $pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8", $user, $pass);
 

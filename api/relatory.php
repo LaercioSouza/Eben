@@ -8,9 +8,10 @@ header("Content-Type: application/json; charset=utf-8");
 
 // Dados do banco
 $host = 'localhost';
-$db = 'dashboard_db';
-$user = 'root';
-$pass = '';
+$db = 'somos220_step_tcbx';
+$user = 'somos220_orbecode';
+$pass = 'oc#web@2025';
+
 $charset = 'utf8mb4';
 
 $dsn = "mysql:host=$host;dbname=$db;charset=$charset";

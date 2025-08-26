@@ -1,4 +1,3 @@
-
 <?php
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Credentials: true");
@@ -10,14 +9,18 @@ header("Content-type: text/plain; charset=utf-8");
 // salvar.php
 
 $host = 'localhost';
-$db = 'dashboard_db';
-$user = 'root';
-$pass = '';
+$db = 'somos220_step_tcbx';
+$user = 'somos220_orbecode';
+$pass = 'oc#web@2025';
+
 
 $pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8", $user, $pass);
 
 // Receber JSON do corpo da requisição
 $data = json_decode(file_get_contents('php://input'), true);
+date_default_timezone_set('America/Sao_Paulo');
+$pdo->exec("SET time_zone = '-03:00'");
+
 
 // Validar se os dados existem
 if (!$data) {

@@ -7,9 +7,10 @@ header("Content-type: application/json; charset=utf-8");
 header("Content-type: text/plain; charset=utf-8");
 
 $host = 'localhost';
-$db = 'dashboard_db';
-$user = 'root';
-$pass = '';
+$db = 'somos220_step_tcbx';
+$user = 'somos220_orbecode';
+$pass = 'oc#web@2025';
+
 $data = json_decode(file_get_contents('php://input'), true);
 
 date_default_timezone_set('America/Sao_Paulo');

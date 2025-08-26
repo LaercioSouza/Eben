@@ -8,10 +8,10 @@ document.addEventListener('DOMContentLoaded', function () {
 // Setup event listeners
 function setupEventListeners() {
   document.getElementById('btn-new-form').addEventListener('click', openNewFormModal);
-  document.getElementById('createFormForm').addEventListener('submit', saveForm);
+  document.getElementById('createFormForm').addEventListener('submit', handleFormSubmit);
   document.getElementById('btn-add-question').addEventListener('click', addQuestion);
 
-  // Event delegation for dynamic elements
+  // Event delegation for dynamic elements - CORRIGIDO
   document.addEventListener('click', function (e) {
     if (e.target.classList.contains('remove-question')) {
       removeQuestion(e.target);
@@ -19,12 +19,24 @@ function setupEventListeners() {
       addOption(e.target);
     } else if (e.target.classList.contains('remove-option')) {
       removeOption(e.target);
-    } else if (e.target.classList.contains('form-item')) {
-      previewForm(e.target.dataset.formId);
-    } else if (e.target.classList.contains('btn-edit-form')) {
-      editForm(e.target.dataset.formId);
-    } else if (e.target.classList.contains('btn-delete-form')) {
-      deleteForm(e.target.dataset.formId);
+    }
+
+    // Verifica se o clique foi em qualquer parte do item do formulário - CORREÇÃO
+    const formItem = e.target.closest('.form-item');
+    if (formItem) {
+      previewForm(formItem.dataset.formId);
+    }
+
+    // Verifica se o clique foi no botão de editar (ou em seus filhos) - CORREÇÃO
+    const editBtn = e.target.closest('.btn-edit-form');
+    if (editBtn) {
+      editForm(editBtn.dataset.formId);
+    }
+
+    // Verifica se o clique foi no botão de deletar (ou em seus filhos) - CORREÇÃO
+    const deleteBtn = e.target.closest('.btn-delete-form');
+    if (deleteBtn) {
+      deleteForm(deleteBtn.dataset.formId);
     }
   });
 
@@ -36,9 +48,10 @@ function setupEventListeners() {
   });
 }
 
+
 // Load and display forms
 function loadForms() {
-     fetch("https://localhost/EBEN/api/showallforms.php")
+     fetch("https://step.tcbx.com.br/api/showallforms.php")
      .then(response => response.json())
      .then(forms => {
       
@@ -78,6 +91,22 @@ function loadForms() {
 }
 
 // Open modal for new form
+// Função para abrir o modal em modo de criação
+function openNewFormModal() {
+  // Limpa o formulário
+  document.getElementById('createFormForm').reset();
+  document.getElementById('questions-container').innerHTML = '';
+  delete document.getElementById('createFormForm').dataset.editingId;
+  
+  // Configura como modo criação
+  document.getElementById('formModalTitle').textContent = 'Criar Novo Formulário';
+  const submitButton = document.getElementById('submitFormButton');
+  submitButton.textContent = 'Salvar Formulário';
+   
+  const modal = new bootstrap.Modal(document.getElementById('formModal'));
+  modal.show();
+}
+/*
 function openNewFormModal() {
   document.getElementById('formModalTitle').textContent = 'Criar Novo Formulário';
   document.getElementById('createFormForm').reset();
@@ -86,7 +115,9 @@ function openNewFormModal() {
 
   const modal = new bootstrap.Modal(document.getElementById('formModal'));
   modal.show();
+  openCreateModal();
 }
+*/
 
 // Add new question
 function addQuestion() {
@@ -160,11 +191,34 @@ function addOption(button) {
 function removeOption(button) {
   button.closest('.input-group').remove();
 }
+function openCreateModal() {
+  // ... (código existente para limpar o formulário)
+  
+  // Restaura o botão para "Salvar"
+  const submitButton = document.getElementById('submitFormButton');
+  submitButton.textContent = 'Salvar';
+  submitButton.classList.remove('btn-warning');
+  submitButton.classList.add('btn-primary');
+}
+
+function getLocalISOString() {
+  const now = new Date();
+  const tzo = -now.getTimezoneOffset();
+  const pad = (num) => (num < 10 ? '0' : '') + num;
+  
+  return now.getFullYear() + '-' +
+    pad(now.getMonth() + 1) + '-' +
+    pad(now.getDate()) + ' ' +
+    pad(now.getHours()) + ':' +
+    pad(now.getMinutes()) + ':' +
+    pad(now.getSeconds());
+}
+
 
 // Save form
-function saveForm(e) {
-  e.preventDefault();
-  
+function saveForm() {
+  console.log("ta vindo pra salvar")
+
   const formName = document.getElementById('formName').value;
   const formDescription = document.getElementById('formDescription').value;
   
@@ -180,23 +234,26 @@ function saveForm(e) {
   questoes.forEach(question => {
   question.id_formulario = id_form;
 });
+
+const createdAt = getLocalISOString();
   
   const formjson = {
     id: id_form,
     name: formName,
     description: formDescription,
-    createdAt: new Date().toISOString()
+    createdAt: createdAt
   };
-  fetch("https://localhost/EBEN/api/saveform.php", {
+  fetch("https://step.tcbx.com.br/api/saveform.php", {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify(formjson)
 })
+
 .then(response => response.json())
 .then(data => {
   console.log('Formulário salvo:', data);
   // Só agora, depois que o formulário foi salvo com sucesso, enviamos as questões:
-  return fetch("https://localhost/EBEN/api/savequestions.php", {
+  return fetch("https://step.tcbx.com.br/api/savequestions.php", {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(questoes)
@@ -204,12 +261,14 @@ function saveForm(e) {
 })
 .then(response => response.json())
 .then(data => {
+
   console.log('Perguntas salvas:', data);
   if(data){
     loadForms();
     hidePreview();
     alert(`Formulário salvo com sucesso!`);
   }
+    
 })
 .catch(error => {
   console.error('Erro ao enviar:', error);
@@ -228,11 +287,12 @@ function collectQuestions() {
     const text = item.querySelector('.question-text').value;
     const type = item.querySelector('.question-type').value;
     const required = item.querySelector('.question-required').checked;
+   const questionId = item.dataset.questionId; // Captura o ID da pergunta
     
     if (!text.trim()) return;
     
     const question = {
-      id: index + 1,
+      id: questionId, // Inclui o ID se existir
       text: text,
       type: type,
       required: required
@@ -262,7 +322,7 @@ function collectQuestions() {
 // Preview form
 function previewForm(formId) {
   const idSelect = { id: formId };
-fetch("https://localhost/EBEN/api/showformdescription.php", {
+fetch("https://step.tcbx.com.br/api/showformdescription.php", {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json'
@@ -333,17 +393,54 @@ function hidePreview() {
   document.getElementById('form-preview').classList.add('d-none');
 }
 
-// Edit form
-function editForm(formId) {
-  const form = window.dataService.getById(window.dataService.DATA_TYPES.FORMS, parseInt(formId));
-  if (!form) return;
+async function fetchFormData(formId) {
+  try {
+    const response = await fetch("https://step.tcbx.com.br/api/showformdescription.php", {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ id: formId })
+    });
 
-  // Fill form data
+    if (!response.ok) {
+      throw new Error('Erro ao buscar formulário');
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Erro:', error);
+    alert('Falha ao carregar formulário');
+    return null;
+  }
+}
+
+// Edit form
+async function editForm(formId) {
+  // Busca os dados do formulário no banco de dados
+  const formData = await fetchFormData(formId);
+  console.log("Editando formulário ID:", formId);
+  
+  if (!formData) return;
+
+  // Mapeia os dados
+  const form = {
+    name: formData.titulo_formulario,
+    description: formData.descricao_formulario,
+    questions: formData.perguntas.map(pergunta => ({
+      id: pergunta.id_pergunta,
+      text: pergunta.texto,
+      type: pergunta.tipo,
+      required: pergunta.obrigatoria === 1,
+      options: pergunta.alternativas?.map(alt => alt.texto_alternative) || []
+    }))
+  };
+
+  // Preenche os dados do formulário
   document.getElementById('formName').value = form.name;
   document.getElementById('formDescription').value = form.description || '';
   document.getElementById('createFormForm').dataset.editingId = formId;
 
-  // Clear and add questions
+  // Limpa e adiciona perguntas
   const container = document.getElementById('questions-container');
   container.innerHTML = '';
 
@@ -351,12 +448,16 @@ function editForm(formId) {
     addQuestion();
     const questionItem = container.lastElementChild;
 
+    // Preenche dados básicos da pergunta
     questionItem.querySelector('.question-text').value = question.text;
     questionItem.querySelector('.question-type').value = question.type;
     questionItem.querySelector('.question-required').checked = question.required;
+    
+    // Armazena ID para atualização (convertendo para string)
+    questionItem.dataset.questionId = question.id.toString();
 
-    // Handle options
-    if (question.options && (question.type === 'checkbox' || question.type === 'radio')) {
+    // Manipula opções
+    if (question.options.length > 0 && (question.type === 'checkbox' || question.type === 'radio')) {
       toggleOptionsContainer(questionItem.querySelector('.question-type'));
       const optionsList = questionItem.querySelector('.options-list');
       optionsList.innerHTML = '';
@@ -369,10 +470,84 @@ function editForm(formId) {
     }
   });
 
+  // Configura como modo edição
   document.getElementById('formModalTitle').textContent = 'Editar Formulário';
-
+  const submitButton = document.getElementById('submitFormButton');
+  submitButton.textContent = 'Atualizar Formulário';
+  submitButton.classList.replace('btn-primary', 'btn-success');
+  
+  // Abre o modal
   const modal = new bootstrap.Modal(document.getElementById('formModal'));
   modal.show();
+}
+
+async function updateForm(formId) {
+  const formName = document.getElementById('formName').value;
+  const formDescription = document.getElementById('formDescription').value;
+  const questions = collectQuestions();
+
+  if (questions.length === 0) {
+    alert('Adicione pelo menos uma pergunta ao formulário.');
+    return false;
+  }
+
+  // Estrutura os dados no formato esperado pelo back-end
+  const formData = {
+    id_formulario: parseInt(formId),
+    titulo_formulario: formName,
+    descricao_formulario: formDescription || '',
+    perguntas: questions.map(question => ({
+      id_pergunta: question.id ? parseInt(question.id) : null,
+      texto: question.text,
+      tipo: question.type,
+      obrigatoria: question.required,
+      alternativas: (question.options || []).map(option => ({
+        texto_alternative: option
+      }))
+    }))
+  };
+
+  try {
+    const response = await fetch("https://step.tcbx.com.br/api/updateform.php", {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(formData)
+    });
+
+    const data = await response.json();
+    
+    if (data.status === 'sucesso') {
+      loadForms();
+      hidePreview();
+      alert('Formulário atualizado com sucesso!');
+      return true;
+    } else {
+      alert('Erro ao atualizar formulário: ' + (data.mensagem || 'Erro desconhecido'));
+      return false;
+    }
+  } catch (error) {
+    console.error('Erro ao atualizar:', error);
+    alert('Falha na conexão ao atualizar formulário');
+    return false;
+  }
+}
+
+// Função de submit unificada
+async function handleFormSubmit(e) {
+  e.preventDefault();
+  
+  const form = e.target;
+  const isEditMode = !!form.dataset.editingId;
+  
+  if (isEditMode) {
+    await updateForm(form.dataset.editingId);
+  } else {
+    await saveForm();
+  }
+  
+  // Fecha o modal após a operação
+  const modal = bootstrap.Modal.getInstance(document.getElementById('formModal'));
+  modal.hide();
 }
 
 // Delete form
@@ -381,7 +556,7 @@ function deleteForm(formId) {
   if (!confirmDelete) return; // Se o usuário cancelar, para aqui
 
   const idSelect = { id: formId };
-  fetch("https://localhost/EBEN/api/delete_form.php", {
+  fetch("https://step.tcbx.com.br/api/delete_form.php", {
          method: 'POST',
          headers: {
         'Content-Type': 'application/json'

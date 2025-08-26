@@ -1,4 +1,5 @@
 // Data service to handle all MySQL operations via PHP backend
+/*
 const DATA_TYPES = {
   COMPANIES: 'companies',
   EMPLOYEES: 'employees',
@@ -539,3 +540,4 @@ const mysqlDataService = {
 
 // Export
 window.dataService = mysqlDataService;
+*/
