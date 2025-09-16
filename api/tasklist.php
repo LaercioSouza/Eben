@@ -10,32 +10,30 @@ header("Content-type: text/plain; charset=utf-8");
 // listar empresas
 
 $host = 'localhost';
-$db = 'somos220_step_tcbx';
-$user = 'somos220_orbecode';
-$pass = 'oc#web@2025';
-
-
+$db = 'dashboard_db';$user = 'root';$pass = '';
 $pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8", $user, $pass);
 
 $sql = "
     SELECT 
-    e.nome AS empresa,
-    c.nome AS colaborador,
-    t.id,
-    t.responsavel,
-    t.tempo_sugerido,
-    t.data_tarefa,
-    t.hora_tarefa,
-    t.descricao,
-    t.coordenadas,
-    t.status,
-    t.criado_em
-FROM 
-    task t
-JOIN 
-    companies e ON t.empresa_id = e.id
-JOIN 
-    employees c ON t.colaborador_id = c.id
+        e.nome AS empresa,
+        c.nome AS colaborador,
+        t.id,
+        t.responsavel,
+        t.tempo_sugerido,
+        t.data_tarefa,
+        t.hora_tarefa,
+        t.descricao,
+        t.coordenadas,
+        t.status,
+        t.criado_em
+    FROM 
+        task t
+    JOIN 
+        companies e ON t.empresa_id = e.id
+    JOIN 
+        employees c ON t.colaborador_id = c.id
+    ORDER BY 
+        t.criado_em DESC
 ";
 
 // Prepara e executa

@@ -51,44 +51,47 @@ function setupEventListeners() {
 
 // Load and display forms
 function loadForms() {
-     fetch("https://step.tcbx.com.br/api/showallforms.php")
-     .then(response => response.json())
-     .then(forms => {
-      
+  fetch("https://localhost/EBEN/api/showallforms.php")
+    .then(response => response.json())
+    .then(forms => {
       const formsList = document.getElementById('forms-list');
-        if (!forms.formularios || forms.formularios.length === 0) {
-      formsList.innerHTML = `
-        <div class="text-center py-4 text-muted">
-          <p>Nenhum formulário criado</p>
-        </div>
-      `;
-      return;
-    }
-    formsList.innerHTML = forms.formularios.map(form => `
-      <div class="list-group-item form-item" data-form-id="${form.id}" style="cursor: pointer;">
-        <div class="d-flex justify-content-between align-items-center">
-          <div>
-            <h6 class="mb-1">${form.titulo}</h6>
-            <small class="text-muted">${form.descricao || 'Sem descrição'}</small>
-            <br>
-            <small class="text-muted">${form.criado_em}</small>
+
+      if (!forms.formularios || forms.formularios.length === 0) {
+        formsList.innerHTML = `
+          <div class="text-center py-4 text-muted">
+            <p>Nenhum formulário criado</p>
           </div>
-          <div>
-            <button class="btn btn-outline-primary btn-sm me-1 btn-edit-form" data-form-id="${form.id}">
-              <i class="bi bi-pencil"></i>
-            </button>
-            <button class="btn btn-outline-danger btn-sm btn-delete-form" data-form-id="${form.id}">
-              <i class="bi bi-trash"></i>
-            </button>
+        `;
+        return;
+      }
+
+      formsList.innerHTML = forms.formularios.map(form => `
+        <div class="list-group-item form-item" data-form-id="${form.id}" style="cursor: pointer;">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="mb-1">${form.titulo}</h6>
+              <small class="text-muted d-block text-truncate" style="max-width: 250px;">
+                ${form.descricao || 'Sem descrição'}
+              </small>
+              <small class="text-muted d-block">${form.criado_em}</small>
+            </div>
+            <div class="d-flex">
+              <button class="btn btn-outline-primary btn-sm me-1 btn-edit-form" data-form-id="${form.id}">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <button class="btn btn-outline-danger btn-sm btn-delete-form" data-form-id="${form.id}">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-    `).join('');
-  })
-  .catch(error => {
-    console.error('Erro ao carregar formularios:', error);
-  });
+      `).join('');
+    })
+    .catch(error => {
+      console.error('Erro ao carregar formularios:', error);
+    });
 }
+
 
 // Open modal for new form
 // Função para abrir o modal em modo de criação
@@ -243,7 +246,7 @@ const createdAt = getLocalISOString();
     description: formDescription,
     createdAt: createdAt
   };
-  fetch("https://step.tcbx.com.br/api/saveform.php", {
+  fetch("https://localhost/EBEN/api/saveform.php", {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify(formjson)
@@ -253,7 +256,7 @@ const createdAt = getLocalISOString();
 .then(data => {
   console.log('Formulário salvo:', data);
   // Só agora, depois que o formulário foi salvo com sucesso, enviamos as questões:
-  return fetch("https://step.tcbx.com.br/api/savequestions.php", {
+  return fetch("https://localhost/EBEN/api/savequestions.php", {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(questoes)
@@ -322,7 +325,7 @@ function collectQuestions() {
 // Preview form
 function previewForm(formId) {
   const idSelect = { id: formId };
-fetch("https://step.tcbx.com.br/api/showformdescription.php", {
+fetch("https://localhost/EBEN/api/showformdescription.php", {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json'
@@ -395,11 +398,7 @@ function hidePreview() {
 
 async function fetchFormData(formId) {
   try {
-<<<<<<< HEAD
-    const response = await fetch("https://step.tcbx.com.br/api/showformdescription.php", {
-=======
     const response = await fetch("https://localhost/EBEN/api/showformdescription.php", {
->>>>>>> 6ae232c7c61eb2224befb8c7dbf536cbeb0794d5
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -512,11 +511,7 @@ async function updateForm(formId) {
   };
 
   try {
-<<<<<<< HEAD
-    const response = await fetch("https://step.tcbx.com.br/api/updateform.php", {
-=======
     const response = await fetch("https://localhost/EBEN/api/updateform.php", {
->>>>>>> 6ae232c7c61eb2224befb8c7dbf536cbeb0794d5
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(formData)
@@ -564,22 +559,28 @@ function deleteForm(formId) {
   if (!confirmDelete) return; // Se o usuário cancelar, para aqui
 
   const idSelect = { id: formId };
-  fetch("https://step.tcbx.com.br/api/delete_form.php", {
-         method: 'POST',
-         headers: {
-        'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(idSelect)
-        })
-       .then(response => response.json())
-       .then(data => {
-        console.log('Resposta do servidor:', data);
-        loadForms();
-        hidePreview();
-        })
-        .catch(error => {
-        console.error('Erro ao enviar:', error);
-});
+  fetch("https://localhost/EBEN/api/delete_form.php", {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(idSelect)
+  })
+  .then(response => response.json())
+  .then(data => {
+    console.log('Resposta do servidor:', data);
 
-
+    if (data.status === 'sucesso') {
+      loadForms();
+      hidePreview();
+      alert(data.mensagem);
+    } else {
+      // Aqui exibe o alerta de erro (inclui o caso de formulário vinculado a tarefas)
+      alert("Erro: " + data.mensagem);
+    }
+  })
+  .catch(error => {
+    console.error('Erro ao enviar:', error);
+    alert("Ocorreu um erro inesperado ao tentar deletar o formulário.");
+  });
 }

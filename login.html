@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+    <title>Page Title</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <link rel='stylesheet' type='text/css' media='screen' href='main.css'>
+    <script src='main.js'></script>
+    <style>
+      
+  .login-body {
+  margin: 0;
+  padding: 0;
+  background: linear-gradient(to right, #64c888, #a7e8a3);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.login-container {
+  background: transparent;
+  padding: 20px;
+  text-align: center;
+  width: 100%;
+  max-width: 400px;
+}
+
+.logo {
+  width: 140px;
+  margin-bottom: 20px;
+}
+
+form input {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 12px;
+  border: none;
+  border-radius: 6px;
+  background-color: #c8f9de;
+  font-size: 16px;
+  color: #222;
+}
+
+form button {
+  width: 100%;
+  padding: 12px;
+  background-color: var(--cor-02);
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  font-size: 16px;
+  color: var(--cor-03);
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+form button:hover {
+  background-color: var(--cor-01);
+}
+
+.esqueci-senha {
+  display: block;
+  margin-top: 12px;
+  font-size: 14px;
+  color: var(--cor-01);
+  text-decoration: none;
+}
+
+.erro-login {
+  background: var(--cor-04);
+  padding: 10px;
+  color: var(--cor-02);
+  margin-bottom: 15px;
+  border-radius: 5px;
+}
+        </style>
+
+
+
+    </style>
+</head>
+<body>
+
+    <div class="login-body">
+    <div class="login-container">
+        <img src="logo-ticbox.svg" alt="Ticbox Sistemas" class="logo">
+        
+        <form method="POST">
+            <input type="text" name="username" placeholder="E-mail ou Usuário" required>
+            <input type="password" name="senha" placeholder="Senha" required>
+            <button type="submit">Login</button>
+            
+        </form>
+    </div>
+</div>
+
+
+    
+</body>
+</html>

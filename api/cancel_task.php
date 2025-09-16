@@ -7,11 +7,7 @@ header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-W
 header("Content-Type: application/json; charset=utf-8");
 
 $host = 'localhost';
-$db = 'somos220_step_tcbx';
-$user = 'somos220_orbecode';
-$pass = 'oc#web@2025';
-
-$pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8", $user, $pass, [
+$db = 'dashboard_db';$user = 'root';$pass = '';$pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8", $user, $pass, [
     PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
 ]);
 date_default_timezone_set('America/Sao_Paulo');

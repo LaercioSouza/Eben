@@ -19,9 +19,11 @@
 </head>
 
 <body>
-  <nav class="navbar navbar-expand-lg navbar-dark bg-success">
-    <div class="container-fluid">
-      <a class="navbar-brand" href="#">Sistema de Tarefas</a>
+  <nav class="navbar navbar-expand-lg navbar-dark" style="background-color: #042D29;">
+    <div class="container">
+      <a class="navbar-brand" href="admin-list.html">
+          <img src="img/eben-step.svg" alt="logo step" style="height: 25px;">
+      </a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
         <span class="navbar-toggler-icon"></span>
       </button>
@@ -39,14 +41,14 @@
         </ul>
         <ul class="navbar-nav">
           <li class="nav-item">
-            <a class="nav-link" href="user.html">Sair</a>
+            <a class="nav-link" href="index.html">Sair</a>
           </li>
         </ul>
       </div>
     </div>
   </nav>
 
-  <div class="container-fluid py-3">
+  <div class="container py-3">
     <div class="task-card">
       <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="mb-0">GERENCIAR FORMULÁRIOS</h2>
@@ -79,9 +81,9 @@
 
   <!-- Modal para criar/editar formulário -->
   <div class="modal fade" id="formModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
-        <div class="modal-header bg-success text-white">
+        <div class="modal-header text-white" style="background-color:var(--cor-01);">
           <h5 class="modal-title" id="formModalTitle">Criar Novo Formulário</h5>
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>

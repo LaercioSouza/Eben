@@ -89,9 +89,11 @@
 </head>
 
 <body>
-  <nav class="navbar navbar-expand-lg navbar-dark bg-success">
-    <div class="container-fluid">
-      <a class="navbar-brand" href="#">Sistema de Tarefas</a>
+  <nav class="navbar navbar-expand-lg navbar-dark" style="background-color: #042D29;">
+    <div class="container">
+      <a class="navbar-brand" href="admin-list.html">
+          <img src="img/eben-step.svg" alt="logo step" style="height: 25px;">
+      </a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
         <span class="navbar-toggler-icon"></span>
       </button>
@@ -109,14 +111,14 @@
         </ul>
         <ul class="navbar-nav">
           <li class="nav-item">
-            <a class="nav-link" href="user.html">Sair</a>
+            <a class="nav-link" href="index.html">Sair</a>
           </li>
         </ul>
       </div>
     </div>
   </nav>
 
-  <div class="container-fluid py-3">
+  <div class="container py-3">
     <div class="task-card">
       <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="mb-0">LISTA DE TAREFAS</h2>
@@ -138,7 +140,7 @@
             <option value="pending">Pendentes</option>
             <option value="in_progress">Em Andamento</option>
             <option value="completed">Concluídas</option>
-            <option value="canceled">Cancelada</option>
+            <option value="canceled">Canceladas</option>
           </select>
         </div>
         <div class="col-md-4 d-flex align-items-end">
@@ -147,8 +149,8 @@
       </div>
 
       <div class="table-responsive">
-        <table class="table table-hover">
-          <thead class="table-success">
+        <table class="table table-hover align-middle text-center">
+          <thead class="table-style">
             <tr>
               <th>Empresa</th>
               <th>Colaborador</th>
@@ -170,18 +172,17 @@
 
       <!-- Export PDF button moved to bottom -->
       <div class="d-flex justify-content-end mt-4">
-        <button id="exportPdfBtn" class="btn btn-outline-primary">
+      <button id="exportPdfBtn" class="btn btn-success">
           <i class="bi bi-file-earmark-pdf"></i> Exportar Relatório Geral
-        </button>
+      </button>
       </div>
-    </div>
-  </div>
+
 
   <!-- Task detail modal -->
   <div class="modal fade" id="taskDetailModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl">
       <div class="modal-content">
-        <div class="modal-header bg-success text-white">
+        <div class="modal-header text-white" style="background-color:var(--cor-01);">
           <h5 class="modal-title">Detalhes da Tarefa</h5>
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
@@ -246,6 +247,17 @@
       </div>
     </div>
   </div>
+  <div class="container mt-5">
+  
+  <div class="row">
+    <div class="col-md-6">
+      <canvas id="performanceChart"></canvas>
+    </div>
+    <div class="col-md-6">
+      <canvas id="suggestedVsRealChart"></canvas>
+    </div>
+  </div>
+</div>
 
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>

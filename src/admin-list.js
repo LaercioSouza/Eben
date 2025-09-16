@@ -4,6 +4,8 @@ document.addEventListener('DOMContentLoaded', function () {
   initApp();
 });
 
+const charts = {};
+
 // Initialize the application
 function initApp() {
   loadTasks();
@@ -104,14 +106,16 @@ function loadTasks() {
   const tasksTableBody = document.getElementById('tasks-table-body');
   const noTasksMessage = document.getElementById('no-tasks-message');
   
-  fetch("https://step.tcbx.com.br/api/tasklist.php")
+  fetch("https://localhost/EBEN/api/tasklist.php")
     .then(response => response.json())
     .then(task_json => {
       const tasks = applyFilters(task_json); // Aplica filtros
       
+      
       if (tasks.length === 0) {
         tasksTableBody.innerHTML = '';
         noTasksMessage.classList.remove('d-none');
+        
         return;
       }
       
@@ -134,6 +138,13 @@ function loadTasks() {
         `;
       }).join('');
 
+      updatePerformanceCharts(
+  document.getElementById('date-filter').value,
+  document.getElementById('status-filter').value
+);
+
+
+
       // Adiciona os event listeners
       document.querySelectorAll('.task-row').forEach(row => {
         row.addEventListener('click', function() {
@@ -142,15 +153,73 @@ function loadTasks() {
         });
       });
     })
+
+    
     .catch(error => {
       console.error('Erro ao carregar tarefas:', error);
     });
 }
+function updatePerformanceCharts(dateFilter, statusFilter) {
+  const url = new URL("https://localhost/EBEN/api/get_performance_data.php");
+
+  if (dateFilter) url.searchParams.append("date", dateFilter);
+  if (statusFilter && statusFilter !== "all") url.searchParams.append("status", statusFilter);
+
+
+
+  fetch(url)
+    .then(res => res.json())
+    .then(data => {
+      if (data.error) {
+        console.warn(data.error);
+        return;
+      }
+
+      // Atualiza os gráficos
+      renderChart(
+        'timeAnalysisChart',
+        'Tempo Médio (Horas)',
+        ['Trabalho', 'Translado'],
+        [data.avgWorkTime, data.avgTransitTime],
+        true
+      );
+
+      renderChart(
+        'suggestedVsRealChart',
+        'Tempo Médio de Execução (Horas)',
+        ['Tempo Executado', 'Tempo Sugerido'],
+        [data.avgReal, data.avgSuggested],
+        true
+      );
+
+      renderChart(
+        'taskCompletionChart',
+        'Tarefas',
+        ['Concluídas', 'Pendentes'],
+        [data.completedTasks, data.totalTasks - data.completedTasks],
+        false
+      );
+
+      renderChart(
+        'performanceChart',
+        'Média de Performance',
+        ['Eficiência', 'Desperdício'],
+        [data.avgPerformance, data.waste],
+        false
+      );
+    })
+    .catch(err => console.error("Erro ao carregar performance:", err));
+}
+
+
+
 
 // Apply filters to tasks
 function applyFilters(tasks) {
   const dateFilter = document.getElementById('date-filter').value;
   const statusFilter = document.getElementById('status-filter').value;
+
+  
 
   let filteredTasks = tasks;
 
@@ -249,13 +318,17 @@ function HHMMSSToDecimal(timeStr) {
   const [hours, minutes, seconds] = timeStr.split(':').map(Number);
   return hours + minutes / 60 + seconds / 3600;
 }
-
 function decimalToHHMM(decimalHours) {
-  const totalMinutes = Math.round(decimalHours * 60);
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+  const totalSeconds = Math.round(decimalHours * 3600);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
 
+  if (hours > 0) {
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  } else {
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  }
 }
 
 function formatTimeToHHMM(timeStr) {
@@ -269,10 +342,8 @@ function formatTimeToHHMM(timeStr) {
 }
 
 function showTaskDetail(taskId) {
-  
-  
   const payload = { id: taskId };  
-  fetch("https://step.tcbx.com.br/api/showdetailstask.php", {
+  fetch("https://localhost/EBEN/api/showdetailstask.php", {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -341,8 +412,7 @@ function showTaskDetail(taskId) {
      
 
       if (actualHours > 0) {
-        efficiency = Math.round((tempoSugeridoDecimal / actualHours) * 100);
-       
+        efficiency = Math.min(Math.round((tempoSugeridoDecimal / actualHours) * 100), 100);
 
         const difference = actualHours - tempoSugeridoDecimal;
         const isOverTime = difference > 0;
@@ -353,7 +423,9 @@ function showTaskDetail(taskId) {
             Tempo Sugerido: ${(task.tempo_sugerido)}<br>
             Tempo Executado: ${(task.report.workTime)}<br>
             Eficiência: ${efficiency}%<br>
-            ${isOverTime ? `Excedeu em ${decimalToHHMM(Math.abs(difference))}` : `Concluído ${decimalToHHMM(Math.abs(difference))} antes do previsto`}
+            ${isOverTime ? 
+          `Excedeu em ${decimalToHHMM(Math.abs(difference))}` : 
+          `Concluído ${decimalToHHMM(Math.abs(difference))} antes do previsto`}
           </div>
         `;
         showPerformanceAnalysis = true;
@@ -364,36 +436,46 @@ function showTaskDetail(taskId) {
 
     // Cancelamento, se houver
     let cancellationInfo = '';
-    if (task.status === 'cancelada' && task.cancellation) {
-      const uploadPath = 'api/uploads/cancellations/';
-      const cancelDate = new Date(task.cancellation.timestamp);
-      const formattedDate = cancelDate.toLocaleDateString('pt-BR');
-      const formattedTime = cancelDate.toLocaleTimeString('pt-BR');
-      
-      cancellationInfo = `
-        <div class="alert alert-danger mt-3">
-          <h6>Cancelamento da Tarefa</h6>
-          <p><strong>Data/Hora:</strong> ${formattedDate} às ${formattedTime}</p>
-          <p><strong>Motivo:</strong> ${task.cancellation.reason}</p>
-          <p><strong>Localização:</strong> ${task.cancellation.coordinates || 'N/A'}</p>
-          ${task.cancellation.photo ? `
-            <div class="mt-2">
-              <strong>Foto do Local:</strong>
-              <img src="${uploadPath}${task.cancellation.photo}" class="img-fluid rounded mt-2" alt="Foto do local">
-            </div>` : ''}
-        </div>
-      `;
+if (task.status === 'cancelada' && task.cancellation) {
+  const uploadPath = 'api/uploads/cancellations/';
+  const cancelDate = new Date(task.cancellation.timestamp);
+  const formattedDate = cancelDate.toLocaleDateString('pt-BR');
+  const formattedTime = cancelDate.toLocaleTimeString('pt-BR');
+
+  let locationText = 'N/A';
+  if (task.cancellation.coordinates) {
+    const coords = task.cancellation.coordinates.split(',');
+    if (coords.length === 2) {
+      // garante que está no formato Lat: ..., Lng: ...
+      locationText = `Lat: ${parseFloat(coords[0]).toFixed(6)}, Lng: ${parseFloat(coords[1]).toFixed(6)}`;
     }
+  }
+
+  cancellationInfo = `
+    <div class="alert alert-danger mt-3">
+      <h6>Cancelamento da Tarefa</h6>
+      <p><strong>Data/Hora:</strong> ${formattedDate} às ${formattedTime}</p>
+      <p><strong>Motivo:</strong> ${task.cancellation.reason}</p>
+      <p><strong>Localização:</strong> ${locationText}</p>
+      ${task.cancellation.photo ? `
+        <div class="mt-2">
+          <strong>Foto do Local:</strong>
+          <img src="${uploadPath}${task.cancellation.photo}" class="img-fluid rounded mt-2" alt="Foto do local">
+        </div>` : ''}
+    </div>
+  `;
+}
+
 
     const content = `
       <div class="mb-3">
         <h6>Informações Básicas</h6>
         <p><strong>Empresa:</strong> ${task.empresaNome}</p>
-        <p><strong>Técnico:</strong> ${task.colaborador}</p>
+        <p><strong>Analista:</strong> ${task.colaborador}</p>
         ${task.responsavel ? `<p><strong>Responsável no Local:</strong> ${task.responsavel}</p>` : ''}
         <p><strong>Data:</strong> ${task.data_tarefa}</p>
         <p><strong>Hora:</strong> ${task.hora_tarefa}</p>
-        ${task.tempo_sugerido ? `<p><strong>Tempo Sugerido:</strong> ${decimalToHHMM(tempoSugeridoDecimal)}</p>` : ''}
+        ${task.tempo_sugerido ? `<p><strong>Tempo Sugerido:</strong> ${task.tempo_sugerido} </p>`:''}
         <p><strong>Status:</strong> <span class="status-badge status-${getStatusClass(task.status)}">${getStatusText(task.status)}</span></p>
         <p><strong>Descrição:</strong> ${task.descricao}</p>
         ${task.formulario_id ? `<p><strong>Formulário ID:</strong> ${task.formulario_id}</p>` : ''}
@@ -481,7 +563,7 @@ function initPerformanceCharts(task, efficiency, actualHours, tempoSugeridoDecim
         efficiencyCtx.chartInstance.destroy();
       }
 
-      const efficiencyValue = Math.min(efficiency, 200);
+      const efficiencyValue = Math.min(efficiency, 100);
       const wasteValue = Math.max(0, 100 - efficiencyValue);
 
       efficiencyCtx.chartInstance = new Chart(efficiencyCtx, {
@@ -646,11 +728,7 @@ function loadTaskHistory(task) {
     const historyList = document.getElementById('task-history-list');
     historyList.innerHTML = '<p class="text-muted">Carregando histórico...</p>';
 
-<<<<<<< HEAD
-    fetch("https://step.tcbx.com.br/api/get_task_history.php", {
-=======
     fetch("https://localhost/EBEN/api/get_task_history.php", {
->>>>>>> 6ae232c7c61eb2224befb8c7dbf536cbeb0794d5
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ id: task.id })
@@ -710,7 +788,7 @@ function loadTaskHistory(task) {
 }
 
 function showFormResponses(task) {
-  fetch("https://step.tcbx.com.br/api/showformdetails.php", {
+  fetch("https://localhost/EBEN/api/showformdetails.php", {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({ id: task.id })
@@ -832,8 +910,22 @@ async function exportIndividualTaskToPDF(taskId) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
   const payload = { id: taskId };
-  
-  fetch("https://step.tcbx.com.br/api/relatoryid.php", {
+
+  // 🔹 Função auxiliar para coordenadas
+  function formatCoordinates(coordString) {
+      if (!coordString) return "N/A";
+      const coords = coordString.split(',');
+      if (coords.length !== 2) return "N/A";
+  // Correção: Primeiro valor é latitude, segundo é longitude
+      const lat = parseFloat(coords[0]);
+      const lng = parseFloat(coords[1]);
+
+      if (isNaN(lat) || isNaN(lng)) return "N/A";
+
+      return `Lat ${lat.toFixed(6)}, Lng ${lng.toFixed(6)}`;
+}
+
+  fetch("https://localhost/EBEN/api/relatoryid.php", {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
@@ -844,9 +936,8 @@ async function exportIndividualTaskToPDF(taskId) {
     const task = data.task;
     const company = data.company;
     const employee = data.employee;
-    const history = data.history; // Novo histórico
-    const formResponses = data.formResponses; // Novos formulários
-
+    const history = data.history; 
+    const formResponses = data.formResponses; 
 
     // Funções auxiliares (mantidas do código original)
     function parseTimeToSeconds(timeStr) {
@@ -911,7 +1002,9 @@ async function exportIndividualTaskToPDF(taskId) {
     if (task.status === 'concluida' && task.tempo_sugerido && task.workTime) {
       const suggestedSec = parseTimeToSeconds(task.tempo_sugerido);
       const executedSec = parseTimeToSeconds(task.workTime);
-      const efficiency = executedSec > 0 ? Math.round((suggestedSec / executedSec) * 100) : 0;
+      const efficiency = executedSec > 0 
+      ? Math.min(Math.round((suggestedSec / executedSec) * 100), 100) 
+      :0;
       const diffSec = executedSec - suggestedSec;
 
       doc.setFontSize(14);
@@ -936,18 +1029,13 @@ async function exportIndividualTaskToPDF(taskId) {
       yPos += 10;
 
       for (let i = 0; i < history.length; i++) {
-
-        // Quebra de página se necessário
         if (yPos > 250) {
           doc.addPage();
           yPos = 20;
         }
         
         const entry = history[i];
-        const date = new Date(entry.timestamp);
-        const formattedDateTime = `${date.toLocaleDateString('pt-BR')} ${date.toLocaleTimeString('pt-BR')}`;
         
-      
         doc.setFontSize(10);
         doc.text(`${i + 1}. ${getActionText(entry.action)}`, 20, yPos);
         yPos += 5;
@@ -955,8 +1043,7 @@ async function exportIndividualTaskToPDF(taskId) {
         yPos += 5;
 
         if (entry.coordinates) {
-          const coords = entry.coordinates.split(',');
-          doc.text(`   Coordenadas: Lat ${parseFloat(coords[1]).toFixed(6)}, Lng ${parseFloat(coords[0]).toFixed(6)}`, 25, yPos);
+          doc.text(`   Coordenadas: ${formatCoordinates(entry.coordinates)}`, 25, yPos);
           yPos += 5;
         }
 
@@ -976,17 +1063,17 @@ async function exportIndividualTaskToPDF(taskId) {
           });
         }
 
-        yPos += 5; // Espaço entre itens
+        yPos += 5;
       }
     }
+
+    // Formulários respondidos
     if (formResponses && formResponses.length > 0) {
-      // Quebra de página se necessário
       if (yPos > 200) {
         doc.addPage();
         yPos = 20;
       }
 
-      // Percorre cada formulário respondido
       for (const form of formResponses) {
         doc.setFontSize(14);
         doc.text('FORMULÁRIO RESPONDIDO', 20, yPos);
@@ -996,9 +1083,7 @@ async function exportIndividualTaskToPDF(taskId) {
         doc.text(`Formulário: ${form.form_titulo} (${form.respondido_em})`, 20, yPos);
         yPos += 10;
 
-        // Percorre cada pergunta/resposta
         for (const answer of form.answers) {
-          // Quebra de página se necessário
           if (yPos > 250) {
             doc.addPage();
             yPos = 20;
@@ -1009,34 +1094,29 @@ async function exportIndividualTaskToPDF(taskId) {
             answerText = answerText.join(', ');
           }
 
-          // Quebra texto longo para múltiplas linhas
           const questionLines = doc.splitTextToSize(` ${answer.questionText}`, 170);
           const answerLines = doc.splitTextToSize(` ${answerText || 'Sem resposta'}`, 160);
 
-          // Pergunta
           questionLines.forEach(line => {
             doc.text(line, 20, yPos);
             yPos += 5;
           });
 
-          // Resposta
           answerLines.forEach(line => {
             doc.text(line, 25, yPos);
             yPos += 5;
           });
 
-          yPos += 5; // Espaço entre perguntas
+          yPos += 5;
         }
         
-        yPos += 10; // Espaço entre formulários
+        yPos += 10;
       }
     }
 
+    // Cancelamento
     if (task.status.toLowerCase() === 'cancelada') {
-        console.log("entrou")
-
-      // Quebra de página se necessário
-        if (yPos > 200) {
+      if (yPos > 200) {
         doc.addPage();
         yPos = 20;
       }
@@ -1056,30 +1136,25 @@ async function exportIndividualTaskToPDF(taskId) {
       yPos += 5;
 
       if (task.cancellation.coordinates) {
-        const coords = task.cancellation.coordinates.split(',');
-        doc.text(`Localização: Lat ${parseFloat(coords[1]).toFixed(6)}, Lng ${parseFloat(coords[0]).toFixed(6)}`, 20, yPos);
+        doc.text(`Localização: ${formatCoordinates(task.cancellation.coordinates)}`, 20, yPos);
         yPos += 5;
       } else {
         doc.text('Localização: Não informada', 20, yPos);
         yPos += 5;
       }
 
-      yPos += 5; // Espaço antes da foto
+      yPos += 5;
 
-      // Se houver foto, tentar adicionar
       if (task.cancellation.photo) {
         doc.text('Foto do Local:', 20, yPos);
         yPos += 5;
 
         try {
-          // Tenta carregar a imagem via URL
           const img = new Image();
           img.crossOrigin = 'Anonymous';
           img.src = task.cancellation.photo;
-          
-          // Adiciona a imagem (dimensionada para 80x60)
           doc.addImage(img, 'JPEG', 20, yPos, 80, 60);
-          yPos += 70; // Altura da imagem + margem
+          yPos += 70;
         } catch (e) {
           console.error('Erro ao adicionar imagem ao PDF:', e);
           doc.text('(Foto não pôde ser incluída)', 20, yPos);
@@ -1092,14 +1167,13 @@ async function exportIndividualTaskToPDF(taskId) {
     }
 
     doc.save(`relatorio-tarefa-${task.id}-${new Date().toISOString().split('T')[0]}.pdf`);
-
-
-    
   })
   .catch(error => {
     console.error('Erro:', error);
     alert('Erro ao gerar relatório: ' + error.message);
   });
+
+
 
   function getStatusText(status) {
     const statusMap = {
@@ -1219,7 +1293,7 @@ async function exportToPDF() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
 
-  fetch("https://step.tcbx.com.br/api/relatory.php", {
+  fetch("https://localhost/EBEN/api/relatory.php", {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
   })
@@ -1332,7 +1406,7 @@ function deleteTask(taskId) {
   if (!confirmDelete) return; // Se o usuário cancelar, para aqui
 
   const idSelect = { id: taskId };
-  fetch("https://step.tcbx.com.br/api/delete_task.php", {
+  fetch("https://localhost/EBEN/api/delete_task.php", {
          method: 'POST',
          headers: {
         'Content-Type': 'application/json'
@@ -1342,6 +1416,7 @@ function deleteTask(taskId) {
        .then(response => response.json())
        .then(data => {
         console.log('Resposta do servidor:', data);
+        alert("tarefa deletada");
         const modal = bootstrap.Modal.getInstance(document.getElementById('taskDetailModal'));
         if (modal) modal.hide();
     
@@ -1399,43 +1474,55 @@ function getActionText(action) {
 
 async function generatePerformanceCharts() {
   try {
-<<<<<<< HEAD
-    const response = await fetch("https://step.tcbx.com.br/api/get_performance_data.php");
-=======
     const response = await fetch("https://localhost/EBEN/api/get_performance_data.php");
->>>>>>> 6ae232c7c61eb2224befb8c7dbf536cbeb0794d5
     const data = await response.json();
-    console.log(data)
+    console.log(data);
 
     if (data.error) {
       alert(data.error);
       return;
     }
 
-    // Renderizar gráficos com os dados do backend
-    renderChart(
-      'taskCompletionChart',
-<<<<<<< HEAD
-      'Tarefas',
-=======
-      'Tarefas Concluídas',
->>>>>>> 6ae232c7c61eb2224befb8c7dbf536cbeb0794d5
-      ['Concluídas', 'Pendentes'],
-      [data.completedTasks, data.totalTasks - data.completedTasks]
-    );
+    // Gráficos de tempo → true
+renderChart(
+  'timeAnalysisChart',
+  'Tempo Médio (Horas)',
+  ['Trabalho', 'Translado'],
+  [data.avgWorkTime, data.avgTransitTime],
+  true
+);
 
-    renderChart(
-      'timeAnalysisChart',
-      'Tempo Médio (Horas)',
-      ['Trabalho', 'Translado'],
-      [data.avgWorkTime, data.avgTransitTime]
-    );
+renderChart(
+  'suggestedVsRealChart',
+  'Tempo Médio de Execução (Horas)',
+  ['Tempo Executado','Tempo Sugerido'],
+  [data.avgReal,data.avgSuggested],
+  true
+);
+
+// Gráficos de contagem → false
+renderChart(
+  'taskCompletionChart',
+  'Tarefas',
+  ['Concluídas', 'Pendentes'],
+  [data.completedTasks, data.totalTasks - data.completedTasks],
+  false
+);
+
+renderChart(
+  'performanceChart',
+  'Média de Performance',
+  ['Eficiência', 'Desperdício'],
+  [data.avgPerformance, data.waste],
+  false
+);
+
 
   } catch (error) {
     alert('Erro ao carregar dados: ' + error.message);
   }
-
 }
+
 
 function calculateAverageTime(tasks, timeField) {
   console.log("chamou")
@@ -1452,37 +1539,70 @@ function calculateAverageTime(tasks, timeField) {
   return (totalMs / validTimes.length) / (1000 * 3600);
 }
 
-function renderChart(canvasId, title, labels, data) {
-  const ctx = document.getElementById(canvasId).getContext('2d');
-  new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels,
-      datasets: [{
-        label: title,
-        data,
-        backgroundColor: ['#4caf50', '#f44336'],
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: { display: false },
-        title: { display: true, text: title }
-      },
-      scales: {
-        y: {
-          beginAtZero: true,
-          ticks: {
-            callback: function (value) {
-              return decimalToHHMM(value);
-            }
+function renderChart(canvasId, title, labels, data, isTime) {
+  const ctx = document.getElementById(canvasId);
+
+  // Se já existe um gráfico nesse canvas, destrói
+  if (charts[canvasId]) {
+    charts[canvasId].destroy();
+  }
+
+  let type = "bar"; // padrão: barras (primeiros 2 gráficos)
+  let options = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      title: {
+        display: true,
+        text: title
+      }
+    }
+  };
+
+  // Se for gráfico de pizza (últimos dois)
+  if (canvasId === "taskCompletionChart" || canvasId === "performanceChart") {
+    type = "pie";
+  }
+
+  // Se for gráfico de tempo (primeiros dois)
+  if (isTime) {
+    options.scales = {
+      y: {
+        title: {
+          display: true,
+          text: "Horas"
+        },
+        ticks: {
+          callback: function(value) {
+            const horas = Math.floor(value);
+            const minutos = Math.round((value - horas) * 60);
+            return `${horas}h ${minutos}m`;
           }
         }
       }
-    }
+    };
+  }
+
+  charts[canvasId] = new Chart(ctx, {
+    type: type,
+    data: {
+      labels: labels,
+      datasets: [{
+        label: title,
+        data: data,
+        backgroundColor: ['#0A7E4D', '#AFEB2B'], // Verde e Vermelho
+        borderColor: ['#042D29', '#042D29'],     // Bordas sólidas também
+        borderWidth: 1
+      }]
+    },
+    options: options
   });
 }
+
+
+
+
+
 
 // Initialize charts on page load
 document.addEventListener('DOMContentLoaded', generatePerformanceCharts);

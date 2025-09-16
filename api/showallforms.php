@@ -9,11 +9,7 @@ header("Content-type: text/plain; charset=utf-8");
 // listar empresas
 
 $host = 'localhost';
-$db = 'somos220_step_tcbx';
-$user = 'somos220_orbecode';
-$pass = 'oc#web@2025';
-
-
+$db = 'dashboard_db';$user = 'root';$pass = '';
 $pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8", $user, $pass);
 
 // Consulta 1: Total de formulários

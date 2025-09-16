@@ -6,11 +6,7 @@ header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-W
 header("Content-type: application/json; charset=utf-8");
 
 $host = 'localhost';
-$db = 'somos220_step_tcbx';
-$user = 'somos220_orbecode';
-$pass = 'oc#web@2025';
-
-
+$db = 'dashboard_db';$user = 'root';$pass = '';
 $pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8", $user, $pass);
 $data = json_decode(file_get_contents('php://input'), true);
 

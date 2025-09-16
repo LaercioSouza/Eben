@@ -5,6 +5,21 @@ body {
   padding-bottom: 20px;
 }
 
+:root {
+  --cor-01: #042d29;
+  --cor-02: #afeb2b;
+}
+
+.table-style th {
+  background-color: var(--cor-01);
+  color: #afeb2b;
+}
+
+.btn-success {
+  background-color: var(--cor-01) !important;
+  color: var(--cor-02);
+}
+
 .task-card {
   background-color: #f5f8f5;
   border-radius: 15px;
@@ -19,6 +34,8 @@ h2 {
   font-weight: bold;
   font-size: 1.5rem;
 }
+
+
 
 .form-label {
   color: #2e7d32;

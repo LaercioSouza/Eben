@@ -3,11 +3,7 @@
 //user.js
 // Global variables
 let currentUserId = null;
-<<<<<<< HEAD
 let currentUserName = null;
-=======
-currentUserName = null;
->>>>>>> 6ae232c7c61eb2224befb8c7dbf536cbeb0794d5
 let map = null;
 let userMarker = null;
 let taskMarkers = [];
@@ -51,10 +47,6 @@ function checkLogin() {
   } else {
     // User is not logged in
     showLoginPanel();
-<<<<<<< HEAD
-=======
-   // loadEmployees();
->>>>>>> 6ae232c7c61eb2224befb8c7dbf536cbeb0794d5
   }
 }
 
@@ -63,11 +55,8 @@ function showLoginPanel() {
   console.log("Mostrando painel de login");
   document.getElementById('login-container').classList.remove('d-none');
   document.getElementById('user-panel').classList.add('d-none');
-<<<<<<< HEAD
   // Esconder a navbar
   document.querySelector('.navbar').classList.add('d-none');
-=======
->>>>>>> 6ae232c7c61eb2224befb8c7dbf536cbeb0794d5
   
   // Clear login form fields
   document.getElementById('inputUsername').value = '';
@@ -94,27 +83,16 @@ function showUserPanel(userName) {
 }
 
 // Login function
-// Corrigir função login
 function login(e) {
   e.preventDefault();
   
-<<<<<<< HEAD
   const email = document.getElementById('inputUsername').value;
-  const password = document.getElementById('inputPassword').value;
-
-  fetch("https://step.tcbx.com.br/api/login.php", {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password })
-=======
-  const username = document.getElementById('inputUsername').value;
   const password = document.getElementById('inputPassword').value;
 
   fetch("https://localhost/EBEN/api/login.php", {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password })
->>>>>>> 6ae232c7c61eb2224befb8c7dbf536cbeb0794d5
+    body: JSON.stringify({ email, password })
   })
   .then(response => response.json())
   .then(data => {
@@ -127,7 +105,6 @@ function login(e) {
       
       // VERIFICAÇÃO DO TIPO DE USUÁRIO (NOVO)
       if (data.user.tipe_user == 1) { // Usuário tipo 1 (Admin)
-<<<<<<< HEAD
         logout(e);
         window.location.href = 'admin.html'; // Redireciona para admin
         return; // Interrompe a execução
@@ -135,22 +112,6 @@ function login(e) {
       
       // CORREÇÃO: Chamar showUserPanel em vez de manipular a UI diretamente
       showUserPanel(currentUserName);
-=======
-        logout(e)
-        window.location.href = 'admin.html'; // Redireciona para admin
-
-        return; // Interrompe a execução
-      }
-      
-      // Código para usuários tipo 2 (Técnicos)
-      document.getElementById('current-user-name').textContent = currentUserName;
-      document.getElementById('login-container').classList.add('d-none');
-      document.getElementById('user-panel').classList.remove('d-none');
-      
-      loadTaskList();
-      startLocationTracking();
-      initializeMap();
->>>>>>> 6ae232c7c61eb2224befb8c7dbf536cbeb0794d5
     } else {
       alert('Falha no login: ' + data.mensagem);
     }
@@ -321,7 +282,7 @@ function loadTaskList() {
 
   const taskList = document.getElementById('task-list');
 
-  fetch("https://step.tcbx.com.br/api/tasklist.php")
+  fetch("https://localhost/EBEN/api/tasklist.php")
     .then(response => response.json())
     .then(tasks => {
       
@@ -380,6 +341,7 @@ function renderTaskList(userTasks, taskList) {
   // Filtrar tarefas pendentes
   const pendingTasks = userTasks.filter(task =>
     task.status !== 'concluida' &&
+    task.status !== 'cancelada' &&
     (task.data <= futureDateStr || task.data < todayStr)
   );
 
@@ -389,6 +351,15 @@ function renderTaskList(userTasks, taskList) {
     task.data >= pastDateStr &&
     task.data <= futureDateStr
   );
+
+  // Filtrar tarefas canceladas
+  // Filtrar tarefas canceladas
+  const canceledTasks = userTasks.filter(task =>
+  task.status === 'cancelada' &&
+  task.data >= pastDateStr &&
+  task.data <= futureDateStr
+);
+
 
   // Generate HTML for task list
   let html = '';
@@ -421,15 +392,38 @@ function renderTaskList(userTasks, taskList) {
         statusText = 'Atrasada';
       } else {
         switch (task.status) {
-          case 'pendente': badgeClass = 'bg-warning text-dark'; break;
-          case 'em_translado': badgeClass = 'bg-warning text-dark'; statusText = 'Em Translado'; break;
-          case 'aguardando_inicio': badgeClass = 'bg-info text-dark'; statusText = 'Aguardando Início'; break;
-          case 'em_andamento': badgeClass = 'bg-primary'; statusText = 'Em Andamento'; break;
-          case 'pausada': badgeClass = 'bg-info text-dark'; statusText = 'Pausada'; break;
-          case 'aguardando_retorno': badgeClass = 'bg-info text-dark'; statusText = 'Aguardando Retorno'; break;
-          case 'retornando': badgeClass = 'bg-warning text-dark'; statusText = 'Retornando'; break;
-          case 'finalizado': badgeClass = 'bg-info text-dark'; statusText = 'Finalizado'; break;
-          case 'cancelada': badgeClass = 'bg-dark'; statusText = 'Cancelada'; break;
+          case 'pendente':
+            badgeClass = 'bg-danger';
+            statusText = 'Pendente';
+            break;
+          case 'em_translado':
+            badgeClass = 'bg-warning text-dark';
+            statusText = 'Em Translado';
+            break;
+          case 'aguardando_inicio':
+            badgeClass = 'bg-danger';
+            statusText = 'Aguardando Início';
+            break;
+          case 'em_andamento':
+            badgeClass = 'bg-primary';
+            statusText = 'Em Andamento';
+            break;
+          case 'pausada':
+            badgeClass = 'bg-primary';
+            statusText = 'Pausada';
+            break;
+          case 'aguardando_retorno':
+            badgeClass = 'bg-warning text-dark';
+            statusText = 'Aguardando Retorno';
+            break;
+          case 'retornando':
+            badgeClass = 'bg-warning text-dark';
+            statusText = 'Retornando';
+            break;
+          case 'finalizado':
+            badgeClass = 'bg-success';
+            statusText = 'Finalizado';
+            break;
         }
       }
 
@@ -461,7 +455,7 @@ function renderTaskList(userTasks, taskList) {
   // Completed tasks section
   if (completedTasks.length > 0) {
     html += `
-      <div class="accordion" id="completed-tasks-accordion">
+      <div class="accordion mb-3" id="completed-tasks-accordion">
         <div class="accordion-item">
           <h2 class="accordion-header">
             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#completed-tasks-collapse" aria-expanded="false">
@@ -497,6 +491,49 @@ function renderTaskList(userTasks, taskList) {
       `;
 
       addTaskMarker(task, true);
+    });
+
+    html += `
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // Canceled tasks section
+  if (canceledTasks.length > 0) {
+    html += `
+      <div class="accordion" id="canceled-tasks-accordion">
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#canceled-tasks-collapse" aria-expanded="false">
+              <i class="bi bi-chevron-down me-2 collapse-icon"></i> Tarefas Canceladas
+            </button>
+          </h2>
+          <div id="canceled-tasks-collapse" class="accordion-collapse collapse" data-bs-parent="#canceled-tasks-accordion">
+            <div class="accordion-body p-0">
+              <div id="canceled-tasks-container">
+    `;
+
+    canceledTasks.forEach(task => {
+      const dateParts = task.data.split('-');
+      const formattedDate = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+
+      html += `
+        <div class="list-group-item task-item canceled-task" data-id="${task.id}" data-date="${task.data}" data-bs-toggle="modal" data-bs-target="#taskDetailModal">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="mb-1">${task.empresaNome}</h6>
+              <small class="text-muted">${formattedDate} às ${task.hora}</small>
+            </div>
+            <span class="badge bg-dark">Cancelada</span>
+          </div>
+          <p class="mb-1 small task-description">${task.descricao.length > 100 ? task.descricao.substring(0, 100) + '...' : task.descricao}</p>
+        </div>
+      `;
+      addTaskMarker(task);
     });
 
     html += `
@@ -545,6 +582,7 @@ function renderTaskList(userTasks, taskList) {
     });
   });
 }
+
 
 
 
@@ -662,7 +700,7 @@ function clearTaskMarkers() {
 function showTaskDetails(taskId) {
   const idSelect =  {id: taskId};
     // Fazer requisição à API para obter os detalhes da tarefa
-  fetch("https://step.tcbx.com.br/api/showtaskid.php", {
+  fetch("https://localhost/EBEN/api/showtaskid.php", {
     method: 'POST',
     headers: {
         'Content-Type':'application/json'
@@ -931,7 +969,7 @@ function startTransit() {
   };
 
   // Enviar atualização para o servidor
-  fetch("https://step.tcbx.com.br/api/updateTaskStatus.php", {
+  fetch("https://localhost/EBEN/api/updateTaskStatus.php", {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -990,7 +1028,7 @@ function endTransit() {
   };
   
   // Enviar atualização para o servidor
-  fetch("https://step.tcbx.com.br/api/updateTaskStatus.php", {
+  fetch("https://localhost/EBEN/api/updateTaskStatus.php", {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -1051,7 +1089,7 @@ function startTask() {
   };
 
   // Enviar atualização para o servidor
-  fetch("https://step.tcbx.com.br/api/updateTaskStatus.php", {
+  fetch("https://localhost/EBEN/api/updateTaskStatus.php", {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -1114,7 +1152,7 @@ function pauseTask() {
   };
 
   // Enviar requisição para iniciar a pausa
-  fetch("https://step.tcbx.com.br/api/pauseTask.php", {
+  fetch("https://localhost/EBEN/api/pauseTask.php", {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -1169,7 +1207,7 @@ function resumeTask() {
   };
 
   // Enviar requisição para terminar a pausa
-  fetch("https://step.tcbx.com.br/api/resumeTask.php", {
+  fetch("https://localhost/EBEN/api/resumeTask.php", {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -1220,7 +1258,7 @@ function completeTask() {
   }
 
   // Verificar se a tarefa tem formulário
-  fetch("https://step.tcbx.com.br/api/formdescription.php", {
+  fetch("https://localhost/EBEN/api/formdescription.php", {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ task_id: currentTask.id })
@@ -1255,7 +1293,7 @@ function finalizarTarefaSemFormulario() {
     completionObservations: observations
   };
 
-  fetch("https://step.tcbx.com.br/api/updateTaskStatus.php", {
+  fetch("https://localhost/EBEN/api/updateTaskStatus.php", {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(updateData)
@@ -1312,7 +1350,7 @@ function startReturnTransit() {
   };
 
   // Enviar atualização para o servidor
-  fetch("https://step.tcbx.com.br/api/updateTaskStatus.php", {
+  fetch("https://localhost/EBEN/api/updateTaskStatus.php", {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -1372,7 +1410,7 @@ function endReturnTransit() {
   };
 
   // Enviar atualização para o servidor
-  fetch("https://step.tcbx.com.br/api/updateTaskStatus.php", {
+  fetch("https://localhost/EBEN/api/updateTaskStatus.php", {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -1430,7 +1468,7 @@ function finalizeTask() {
   };
 
   // Enviar atualização para o servidor
-  fetch("https://step.tcbx.com.br/api/updateTaskStatus.php", {
+  fetch("https://localhost/EBEN/api/updateTaskStatus.php", {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -1484,65 +1522,74 @@ function stopCamera() {
 
 function capturePhoto() {
   const video = document.getElementById('camera-preview');
+  if (!video || video.readyState !== 4) {
+    return null; // câmera não estava ativa
+  }
+
   const canvas = document.createElement('canvas');
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
   const ctx = canvas.getContext('2d');
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-  
-  
+
   return canvas.toDataURL('image/jpeg');
 }
 
   function cancelTask() {
-    const reason = document.getElementById('cancel-reason').value;
-    if (!reason) {
-        alert('Por favor, informe o motivo do cancelamento.');
-        return;
-    }
+  const reason = document.getElementById('cancel-reason').value;
+  if (!reason) {
+    alert('Por favor, informe o motivo do cancelamento.');
+    return;
+  }
 
-    const photoData = capturePhoto(); // Base64 da foto
-    stopCamera();
+  const photoData = capturePhoto();
 
-    const endTime = getLocalISOString();
+  // 🔒 TRAVA DE SEGURANÇA: só prossegue se realmente houver foto
+  if (!photoData || photoData.length < 1000) { 
+    // (base64 de uma foto real é bem maior que 1000 chars)
+    alert('É obrigatório tirar uma foto para cancelar a tarefa.');
+    return;
+  }
+
+  stopCamera();
+
+  const endTime = getLocalISOString();
 
   // Dados para enviar à API
-    const updateData = {
+  const updateData = {
     taskId: currentTask.id,
     newStatus: 'cancelada',
     endTime: endTime,
     coordinates: currentCoordinates,
-    reason: reason, // <-- minúsculo
+    reason: reason,
     photo: photoData
-};
+  };
 
-
-
-    fetch("https://step.tcbx.com.br/api/cancel_task.php", {
+  fetch("https://localhost/EBEN/api/cancel_task.php", {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify(updateData)
-    })
-    .then(res => res.json())
-    .then(data => {
-        console.log(data)
-        if (data.success) {
-            // Fecha modais
-            const cancelModal = bootstrap.Modal.getInstance(document.getElementById('cancelTaskModal'));
-            if (cancelModal) cancelModal.hide();
-            const taskModal = bootstrap.Modal.getInstance(document.getElementById('taskDetailModal'));
-            if (taskModal) taskModal.hide();
+  })
+  .then(res => res.json())
+  .then(data => {
+    console.log(data)
+    if (data.success) {
+      alert("Tarefa cancelada!");
+      const cancelModal = bootstrap.Modal.getInstance(document.getElementById('cancelTaskModal'));
+      if (cancelModal) cancelModal.hide();
+      const taskModal = bootstrap.Modal.getInstance(document.getElementById('taskDetailModal'));
+      if (taskModal) taskModal.hide();
 
-            loadTaskList();
-            
-        } else {
-            alert("Erro: " + data.message);
-        }
-    })
-    .catch(err => console.error(err));
+      loadTaskList();
+    } else {
+      alert("Erro: " + data.message);
+    }
+  })
+  .catch(err => console.error(err));
 }
+
 
   
 
@@ -1696,7 +1743,7 @@ function saveTaskFormAnswers(taskId, form, modal) {
     }
   };
 
-  fetch("https://step.tcbx.com.br/api/salvar-respostas-e-atualizar-tarefa.php", {
+  fetch("https://localhost/EBEN/api/salvar-respostas-e-atualizar-tarefa.php", {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
@@ -1746,7 +1793,7 @@ function saveTaskFormAnswers(taskId, form, modal) {
     completionObservations: observations
   };
 
-  fetch("https://step.tcbx.com.br/api/updateTaskStatus.php", {
+  fetch("https://localhost/EBEN/api/updateTaskStatus.php", {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(updateData)

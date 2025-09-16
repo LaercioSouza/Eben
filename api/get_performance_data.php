@@ -1,38 +1,62 @@
-<?php
+<?php 
 header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Credentials: true");
-header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
 header("Content-Type: application/json; charset=utf-8");
 
 $host = 'localhost';
-<<<<<<< HEAD
-$db = 'somos220_step_tcbx';
-$user = 'somos220_orbecode';
-$pass = 'oc#web@2025';
-
-=======
-$db = 'dashboard_db';
-$user = 'root';
-$pass = '';
->>>>>>> 6ae232c7c61eb2224befb8c7dbf536cbeb0794d5
-try {
+$db = 'dashboard_db';$user = 'root';$pass = '';try {
     $pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8", $user, $pass);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
-    echo json_encode(['status' => 'erro', 'mensagem' => 'Erro na conexão com o banco: ' . $e->getMessage()]);
+    echo json_encode(['error' => 'Erro na conexão com o banco: ' . $e->getMessage()]);
     exit;
 }
-    try{
-    // Buscar tarefas do banco
-    $stmt = $pdo->query("
+
+// --- Recebe filtros do front ---
+$dateFilter = $_GET['date'] ?? null;
+$statusFilter = $_GET['status'] ?? null;
+$empresaId   = $_GET['empresaId'] ?? null;
+
+$where = [];
+$params = [];
+
+// Filtro por data
+if (!empty($dateFilter)) {
+    $where[] = "t.data_tarefa = :dateFilter";
+    $params[':dateFilter'] = $dateFilter;
+}
+
+// Filtro por status
+$statusMap = [
+    "pending"     => "pendente",
+    "in_progress" => "em_andamento",
+    "completed"   => "concluida",
+    "canceled"    => "cancelada"
+];
+if (!empty($statusFilter) && $statusFilter !== "all") {
+    $statusDb = $statusMap[$statusFilter] ?? $statusFilter;
+    $where[] = "t.status = :statusFilter";
+    $params[':statusFilter'] = $statusDb;
+}
+
+// Filtro por empresa
+if (!empty($empresaId)) {
+    $where[] = "t.empresa_id = :empresaId";
+    $params[':empresaId'] = $empresaId;
+}
+
+$whereSql = count($where) > 0 ? "WHERE " . implode(" AND ", $where) : "";
+
+try {
+    $stmt = $pdo->prepare("
         SELECT 
-            status,
-            workTime,
-            transitTime
-        FROM task
-        
+            t.status,
+            t.workTime,
+            t.tempo_sugerido,
+            t.transitTime
+        FROM task t
+        $whereSql
     ");
+    $stmt->execute($params);
     $tasks = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     if (!$tasks) {
@@ -40,20 +64,52 @@ try {
         exit;
     }
 
-    // Processar dados
     $completedTasks = array_filter($tasks, fn($task) => $task['status'] === 'concluida');
     $totalTasks = count($tasks);
-    
-    // Calcular médias de tempo
+
+    // --- Cálculos ---
     $avgWorkTime = calcularMediaTempo($completedTasks, 'workTime');
     $avgTransitTime = calcularMediaTempo($completedTasks, 'transitTime');
 
-    // Retornar resposta
+    $performances = [];
+    $efficiencyCount = 0;
+    $wastePercentages = [];
+
+    foreach ($completedTasks as $task) {
+        if (!empty($task['tempo_sugerido']) && !empty($task['workTime'])) {
+            $sugerido = tempoParaSegundos($task['tempo_sugerido']);
+            $real = tempoParaSegundos($task['workTime']);
+            if ($sugerido > 0 && $real > 0) {
+                // Limita a performance individual a 100%
+                $performance = min(100, ($sugerido / $real) * 100);
+                $performances[] = $performance;
+
+                // Contagem de eficiência
+                if ($performance >= 100) {
+                    $efficiencyCount++;
+                }
+
+                // Desperdício consistente com gráfico individual
+                $wastePercentages[] = max(0, 100 - $performance);
+            }
+        }
+    }
+
+    $avgPerformance = count($performances) > 0 ? round(array_sum($performances) / count($performances), 2) : 0;
+    $avgWaste = count($wastePercentages) > 0 ? round(array_sum($wastePercentages) / count($wastePercentages), 2) : 0;
+    $avgSuggested = calcularMediaTempo($completedTasks, 'tempo_sugerido');
+    $avgReal = calcularMediaTempo($completedTasks, 'workTime');
+
     echo json_encode([
         'completedTasks' => count($completedTasks),
         'totalTasks' => $totalTasks,
         'avgWorkTime' => $avgWorkTime,
-        'avgTransitTime' => $avgTransitTime
+        'avgTransitTime' => $avgTransitTime,
+        'avgPerformance' => $avgPerformance,
+        'efficiency' => $efficiencyCount,
+        'waste' => $avgWaste,
+        'avgSuggested' => $avgSuggested,
+        'avgReal' => $avgReal
     ]);
 
 } catch (Exception $e) {
@@ -63,16 +119,16 @@ try {
 function calcularMediaTempo($tasks, $campo) {
     $totalSegundos = 0;
     $count = 0;
-
     foreach ($tasks as $task) {
         if (!empty($task[$campo])) {
-            $parts = explode(':', $task[$campo]);
-            $totalSegundos += ($parts[0] * 3600) + ($parts[1] * 60) + $parts[2];
+            $totalSegundos += tempoParaSegundos($task[$campo]);
             $count++;
         }
     }
-
-    return $count > 0 ? round(($totalSegundos / $count) / 3600, 2) : 0; // Retorna em horas
+    return $count > 0 ? round(($totalSegundos / $count) / 3600, 2) : 0; // em horas
 }
 
-?>
+function tempoParaSegundos($tempo) {
+    $parts = explode(':', $tempo);
+    return ($parts[0] * 3600) + ($parts[1] * 60) + $parts[2];
+}

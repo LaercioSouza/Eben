@@ -145,55 +145,133 @@ function setTodayAsDefault() {
 }
 
 // Load companies from data service
-function loadCompanies() {
+let todasEmpresas = [];
 
-   //const empresaSelect = document.getElementById('empresa');
+function loadCompanies() {
   const empresaSelect = document.getElementById('empresa');
 
- 
-  fetch("https://step.tcbx.com.br/api/listcompanies.php")
+  fetch("https://localhost/EBEN/api/listcompanies.php")
     .then(response => response.json())
     .then(empresas => {
+      todasEmpresas = empresas; // Armazena todas as empresas
       const select = document.getElementById('empresa');
-
-      empresas.forEach(empresa => {
+      
+      // Limpa o select mantendo apenas a primeira opção
+      select.innerHTML = '<option value="">Selecione uma empresa:</option>';
+      
+      // Filtra apenas empresas que não são filiais
+      empresas.filter(empresa => !empresa.parentId).forEach(empresa => {
         const option = document.createElement('option');
         option.value = empresa.id;
-      
-        // Exibir: nome - cnpj - endereço - telefone
-        option.textContent = `${empresa.nome} - ${empresa.cnpj} - ${empresa.endereco} - ${empresa.telefone}`;
-        // console.log(option.textContent = `${empresa.nome} - ${empresa.cnpj} - ${empresa.endereco} - ${empresa.telefone}`);
 
-        select.innerHTML = '<option value="">Selecione uma empresa</option>';
-        
-    empresas.filter(empresa => !empresa.parentId).forEach(empresa => {
-    const option = document.createElement('option');
-    option.value = empresa.id;
-    
-    // Create detailed display text
-    let displayText = empresa.nome;
-    if (empresa.cnpj) {
-      displayText += ` (CNPJ: ${empresa.cnpj})`;
-    }
-    if (empresa.endereco) {
-      displayText += ` - ${empresa.endereco}`;
-    }
-    
-    option.textContent = displayText;
-    option.title = `${empresa.nome}\nCNPJ: ${empresa.cnpj || 'Não informado'}\nEndereço: ${empresa.endereco || 'Não informado'}\nTelefone: ${empresa.telefone || 'Não informado'}`;
-    select.appendChild(option);
-  });
+        // Nome sempre em destaque
+        let displayText = empresa.nome;
 
-        
+        // Monta informações extras
+        let extraInfo = [];
+        if (empresa.cnpj) {
+          extraInfo.push(`CNPJ: ${empresa.cnpj}`);
+        }
+        if (empresa.endereco) {
+          extraInfo.push(empresa.endereco);
+        }
+
+        // Junta nome + extras (quebra automática via CSS)
+        if (extraInfo.length > 0) {
+          displayText += " — " + extraInfo.join(" • ");
+        }
+
+        option.textContent = displayText;
+
+        // Tooltip detalhado
+        option.title = `${empresa.nome}
+CNPJ: ${empresa.cnpj || 'Não informado'}
+Endereço: ${empresa.endereco || 'Não informado'}
+Telefone: ${empresa.telefone || 'Não informado'}`;
+
+        select.appendChild(option);
       });
     })
     .catch(error => {
       console.error('Erro ao carregar empresas:', error);
     });
 
-    toggleSubsidiaryField(false);
-  
+  toggleSubsidiaryField(false);
 }
+
+// Função para filtrar empresas
+function filterCompanies() {
+  const filterText = document.getElementById('empresaFilter').value.toLowerCase();
+  const select = document.getElementById('empresa');
+  
+  // Limpa o select mantendo apenas a primeira opção
+  select.innerHTML = '<option value="">Selecione uma empresa</option>';
+  
+  // Mostra o botão de limpar filtro se houver texto
+  document.getElementById('clearFilter').style.display = filterText ? 'block' : 'none';
+  
+  // Filtra empresas baseado no texto
+  todasEmpresas.filter(empresa => !empresa.parentId).forEach(empresa => {
+    const nome = empresa.nome?.toLowerCase() || '';
+    const cnpj = empresa.cnpj?.toLowerCase() || '';
+    const endereco = empresa.endereco?.toLowerCase() || '';
+    const telefone = empresa.telefone?.toLowerCase() || '';
+    
+    if (filterText === '' || 
+        nome.includes(filterText) || 
+        cnpj.includes(filterText) || 
+        endereco.includes(filterText) || 
+        telefone.includes(filterText)) {
+      
+      const option = document.createElement('option');
+      option.value = empresa.id;
+
+      // Nome sempre em destaque
+      let displayText = empresa.nome;
+
+      // Monta informações extras
+      let extraInfo = [];
+      if (empresa.cnpj) {
+        extraInfo.push(`CNPJ: ${empresa.cnpj}`);
+      }
+      if (empresa.endereco) {
+        extraInfo.push(empresa.endereco);
+      }
+
+      // Junta nome + extras (quebra automática via CSS)
+      if (extraInfo.length > 0) {
+        displayText += " — " + extraInfo.join(" • ");
+      }
+
+      option.textContent = displayText;
+
+      // Tooltip detalhado
+      option.title = `${empresa.nome}
+CNPJ: ${empresa.cnpj || 'Não informado'}
+Endereço: ${empresa.endereco || 'Não informado'}
+Telefone: ${empresa.telefone || 'Não informado'}`;
+
+      select.appendChild(option);
+    }
+  });
+}
+
+// Adiciona event listeners quando o DOM estiver carregado
+document.addEventListener('DOMContentLoaded', function() {
+  // Listener para o campo de filtro
+  document.getElementById('empresaFilter').addEventListener('input', filterCompanies);
+  
+  // Listener para o botão de limpar filtro
+  document.getElementById('clearFilter').addEventListener('click', function() {
+    document.getElementById('empresaFilter').value = '';
+    filterCompanies();
+  });
+  
+  // Carrega as empresas
+  
+});
+
+
 
 // Load subsidiaries
 async function loadSubsidiaries() {
@@ -205,11 +283,7 @@ async function loadSubsidiaries() {
   }
 
   try {
-<<<<<<< HEAD
-    const response = await fetch(`https://step.tcbx.com.br/api/get_subsidiaries.php?empresaId=${empresaId}`);
-=======
     const response = await fetch(`https://localhost/EBEN/api/get_subsidiaries.php?empresaId=${empresaId}`);
->>>>>>> 6ae232c7c61eb2224befb8c7dbf536cbeb0794d5
     
     if (!response.ok) {
       throw new Error('Erro ao carregar filiais');
@@ -265,7 +339,7 @@ function toggleSubsidiaryField(show) {
 
 // Load employees from data service
 function loadEmployees() {
-    fetch("https://step.tcbx.com.br/api/listemploye.php")
+    fetch("https://localhost/EBEN/api/listemploye.php")
     .then(response => response.json())
     .then(funcionarios => {
     const select = document.getElementById('colaborador');
@@ -273,7 +347,7 @@ function loadEmployees() {
         const option = document.createElement('option');
         option.value = func.id;
         option.textContent = `${func.nome}`;
-        select.innerHTML = '<option value="">Selecione um técnico</option>';
+        select.innerHTML = '<option value="">Selecione um Analista</option>';
 
         funcionarios.filter(func => !func.parentId).forEach(func => {
         const option = document.createElement('option');
@@ -291,7 +365,7 @@ function loadEmployees() {
 
 // Load forms from data service
 function loadForms() {
-  fetch("https://step.tcbx.com.br/api/showallforms.php")
+  fetch("https://localhost/EBEN/api/showallforms.php")
   .then(response => response.json())
   .then(data => {
     const formularioSelect = document.getElementById('formulario');
@@ -334,174 +408,156 @@ function getLocalISOString() {
     pad(now.getMinutes()) + ':' +
     pad(now.getSeconds());
 }
-function validateTempoSugerido() {
-  const horas = parseInt(document.getElementById('tempoSugeridoHoras').value) || 0;
-  const minutos = parseInt(document.getElementById('tempoSugeridoMinutos').value) || 0;
-            
-  if (horas === 0 && minutos === 0) {
-      document.getElementById('tempoSugeridoGroup').classList.add('is-invalid');
-      document.getElementById('tempoSugeridoError').style.display = 'block';
-      return false;
-      } else {
-          document.getElementById('tempoSugeridoGroup').classList.remove('is-invalid');
-          document.getElementById('tempoSugeridoError').style.display = 'none';
-          return true;
-            }
-        }
+    // Função para validar o tempo sugerido
+    function validateTempoSugerido() {
+      const tempoSugerido = document.getElementById('tempoSugerido').value;
+      
+      if (!tempoSugerido) {
+        document.getElementById('tempoSugerido').classList.add('is-invalid');
+        document.getElementById('tempoSugeridoError').style.display = 'block';
+        return false;
+      }
+      
+      // Verificar se o tempo é válido (não pode ser 00:00)
+      const [hours, minutes] = tempoSugerido.split(':').map(Number);
+      if (hours === 0 && minutes === 0) {
+        document.getElementById('tempoSugerido').classList.add('is-invalid');
+        document.getElementById('tempoSugeridoError').style.display = 'block';
+        return false;
+      }
+      
+      document.getElementById('tempoSugerido').classList.remove('is-invalid');
+      document.getElementById('tempoSugeridoError').style.display = 'none';
+      return true;
+    }
 
-function getLocalISOString() {
-  const now = new Date();
-  const tzo = -now.getTimezoneOffset();
-  const pad = (num) => (num < 10 ? '0' : '') + num;
-  
-  return now.getFullYear() + '-' +
-    pad(now.getMonth() + 1) + '-' +
-    pad(now.getDate()) + ' ' +
-    pad(now.getHours()) + ':' +
-    pad(now.getMinutes()) + ':' +
-    pad(now.getSeconds());
-}
+// Função para converter HH:MM para HH:MM:SS (adicionando segundos como 00)
+function convertTimeToMySQLFormat(timeString) {
+  if (!timeString) return null;
+
+  // Se já estiver no formato HH:MM:SS, retorna direto
+  if (timeString.split(':').length === 3) {
+    return timeString;
+  }
+
+  // Se estiver no formato HH:MM, adiciona os segundos
+  return timeString + ':00';
+}    
 
 // Save task using data service
 function saveTask(e) {
-  e.preventDefault();
-  if (!validateTempoSugerido()) {
-                return;
-            }
-
-  // Get form values
-<<<<<<< HEAD
-              const empresa = document.getElementById('empresa').value;
-            const subsidiary = document.getElementById('subsidiary')?.value || null;
-            const colaborador = document.getElementById('colaborador').value;
-            const responsavel = document.getElementById('responsavel').value || '';
-            const data = document.getElementById('data').value;
-            const hora = document.getElementById('hora').value;
-            
-            // Obter horas e minutos separadamente
-            const horas = parseInt(document.getElementById('tempoSugeridoHoras').value) || 0;
-            const minutos = parseInt(document.getElementById('tempoSugeridoMinutos').value) || 0;
-            
-            const descricao = document.getElementById('descricao').value;
-            const coordinates = document.getElementById('coordinates').value;
-            const formulario = document.getElementById('formulario').value || null;
-            
-            if (!empresa || !colaborador) {
-                alert('Por favor, selecione uma empresa e um técnico válidos');
-                return;
-            }
-            
-            const startTime = getLocalISOString();
-            
-            // Converter horas e minutos para o formato HH:MM:SS
-            const tempoSugerido = (horas > 0 || minutos > 0) ? hoursMinutesToHHMMSS(horas, minutos) : null;
-            
-            const task = {
-                id: Date.now(),
-                empresaid: empresa,
-                subsidiaria: subsidiary,
-                colaboradorid: colaborador,
-                responsavel: responsavel,
-                tempoSugerido: tempoSugerido,
-                data: data,
-                hora: hora,
-                descricao: descricao,
-                coordinates: coordinates,
-                formularioNome: formulario,
-                formularioResposta: null,
-                status: 'pendente',
-                history: [
-                    {
-                        timestamp: new Date().toISOString(),
-                        action: 'criada',
-                        coordinates: coordinates
-                    }
-                ],
-                createdAt: startTime
-            };
-=======
-  const empresa = document.getElementById('empresa').value;
-  const subsidiary = document.getElementById('subsidiary')?.value || null;
-  const colaborador = document.getElementById('colaborador').value;
-  const responsavel = document.getElementById('responsavel').value || '';
-  const data = document.getElementById('data').value;
-  const hora = document.getElementById('hora').value;
-  const tempoSugerido = document.getElementById('tempoSugerido').value || null;
-  const descricao = document.getElementById('descricao').value;
-  const coordinates = document.getElementById('coordinates').value;
-  const formulario = document.getElementById('formulario').value || null;
-  if (!empresa || !colaborador) {
-    alert('Por favor, selecione uma empresa e um técnico válidos');
-    return;
-  }
-  const startTime = getLocalISOString();
-   const task = {
-    id: Date.now(),
-    empresaid: empresa,
-    subsidiaria: subsidiary,
-    colaboradorid: colaborador,
-    responsavel: responsavel,
-    tempoSugerido: tempoSugerido ? decimalHoursToHHMMSS(parseFloat(tempoSugerido)) : null,
-    data: data,
-    hora: hora,
-    descricao: descricao,
-    coordinates: coordinates,
-    formularioNome: formulario,
-    formularioResposta: null, // Will be filled when technician completes the form
-    status: 'pendente', // initial status
-    history: [
-      {
-        timestamp: new Date().toISOString(),
-        action: 'criada',
-        coordinates: coordinates
+      e.preventDefault();
+      
+      if (!validateTempoSugerido()) {
+        return;
       }
-    ],
-    createdAt: startTime
-  };
->>>>>>> 6ae232c7c61eb2224befb8c7dbf536cbeb0794d5
 
+      // Get form values
+      const empresa = document.getElementById('empresa').value;
+      const subsidiary = document.getElementById('subsidiary')?.value || null;
+      const colaborador = document.getElementById('colaborador').value;
+      const responsavel = document.getElementById('responsavel').value || '';
+      const data = document.getElementById('data').value;
+      const hora = document.getElementById('hora').value;
+      
+      // Obter o tempo sugerido no formato HH:MM e converter para HH:MM:SS
+      const tempoSugerido = document.getElementById('tempoSugerido').value;
+      const tempoSugeridoMySQL = convertTimeToMySQLFormat(tempoSugerido);
+      
+      const descricao = document.getElementById('descricao').value;
+      const coordinates = document.getElementById('coordinates').value;
+      const formulario = document.getElementById('formulario').value || null;
+      
+      if (!empresa || !colaborador) {
+        alert('Por favor, selecione uma empresa e um analista válidos');
+        return;
+      }
+      
+      const startTime = getLocalISOString();
+      
+      const task = {
+        id: Date.now(),
+        empresaid: empresa,
+        subsidiaria: subsidiary,
+        colaboradorid: colaborador,
+        responsavel: responsavel,
+        tempoSugerido: tempoSugeridoMySQL, // Já está no formato HH:MM:SS
+        data: data,
+        hora: hora,
+        descricao: descricao,
+        coordinates: coordinates,
+        formularioNome: formulario,
+        formularioResposta: null,
+        status: 'pendente',
+        history: [
+          {
+            timestamp: new Date().toISOString(),
+            action: 'criada',
+            coordinates: coordinates
+          }
+        ],
+        createdAt: startTime
+      };
 
-  fetch('https://step.tcbx.com.br/api/savetask.php', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify(task)
-})
-.then(response => response.json())
-.then(data => {
-  console.log('resposta do servidor:', data);
-  if(data){
-    alert(`tarefa salva com sucesso!`);
-  }
-  
-})
-.catch(error => {
-  console.error('Erro:', error);
-});
- 
-  this.reset();
-  setTodayAsDefault();
-  
-  // Reload dropdowns to ensure they are populated
-  loadCompanies();
-  loadEmployees();
-  loadForms();
-  
-  // Hide subsidiary field
-  toggleSubsidiaryField(false);
-  
-  // Recenter map marker
-  const center = map.getCenter();
-  marker.setLatLng(center);
-  updateCoordinates();
-}
+      fetch('https://localhost/EBEN/api/savetask.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(task)
+      }) 
+      .then(response => response.json())
+      .then(data => {
+        console.log('resposta do servidor:', data);
+        if(data){
+          alert(`tarefa salva com sucesso!`);
+        }
+          
+      })
+      .catch(error => {
+        console.error('Erro:', error);
+      });
+     
+      this.reset();
+      setTodayAsDefault();
+      
+      // Reload dropdowns to ensure they are populated
+      loadCompanies();
+      loadEmployees();
+      loadForms();
+      
+      // Hide subsidiary field
+      toggleSubsidiaryField(false);
+      
+      // Recenter map marker
+      const center = map.getCenter();
+      marker.setLatLng(center);
+      updateCoordinates();
+    }
+
+    // Adicionar event listener ao formulário quando o DOM estiver carregado
+    document.addEventListener('DOMContentLoaded', function() {
+      const taskForm = document.getElementById('taskForm');
+      if (taskForm) {
+        taskForm.addEventListener('submit', saveTask);
+      }
+      
+      // Adicionar validação em tempo real para o campo tempoSugerido
+      const tempoSugeridoInput = document.getElementById('tempoSugerido');
+      if (tempoSugeridoInput) {
+        tempoSugeridoInput.addEventListener('change', validateTempoSugerido);
+        tempoSugeridoInput.addEventListener('input', function() {
+          this.classList.remove('is-invalid');
+          document.getElementById('tempoSugeridoError').style.display = 'none';
+        });
+      }
+    });
 
 // Save company using data service
 function saveCompany(e) {
   e.preventDefault();
   const companyName = document.getElementById('companyName').value;
-  const companyCnpj = document.getElementById('companyCnpj').value;
+  const companyCnpj = document.getElementById('companyCnpj').value || null;
   const companyAddress = document.getElementById('companyAddress').value;
   const companyPhone = document.getElementById('companyPhone').value;
   const parentCompanyId = document.getElementById('parentCompany').value || null;
@@ -519,7 +575,7 @@ function saveCompany(e) {
     parentId: parentCompanyId ? parseInt(parentCompanyId) : null,
     createdAt: createdAt
   };
-    fetch("https://step.tcbx.com.br/api/config.php", {
+    fetch("https://localhost/EBEN/api/config.php", {
          method: 'POST',
          headers: {
         'Content-Type': 'application/json'
@@ -531,25 +587,7 @@ function saveCompany(e) {
     console.log('Resposta bruta:', text);
     alert(`Empresa ${companyName} cadastrada com sucesso!`);
     const form = JSON.parse(text);
-<<<<<<< HEAD
     // Reset form
-=======
-  })
-
-      /*
-       .then(response => response.json())
-       .then(data => {
-        console.log('Resposta do servidor:', data);
-        alert(`Empresa ${companyName} cadastrada com sucesso!`);
-      * 
-      })*/
-.catch(error => {
-  console.error('Erro ao enviar:', error);
-});
-
-  
-  // Reset form
->>>>>>> 6ae232c7c61eb2224befb8c7dbf536cbeb0794d5
   document.getElementById('companyForm').reset();
   
   // Close modal
@@ -577,32 +615,62 @@ function saveCompany(e) {
 }
 
 // Load parent companies
+let todasParentCompanies = [];
+
 function loadParentCompanies() {
   const parentCompanySelect = document.getElementById('parentCompany');
   if (!parentCompanySelect) return;
-  // Limpar opções atuais
-  parentCompanySelect.innerHTML = '<option value="">Nenhuma (Empresa Principal)</option>';
-     fetch("https://step.tcbx.com.br/api/showparentcompanies.php")
+
+  fetch("https://localhost/EBEN/api/showparentcompanies.php")
     .then(response => response.json())
     .then(companies => {
-      // Filtrar apenas empresas principais (sem parentId ou com parentId nulo/vazio)
-      companies
-        .filter(company => !company.parentId)
-        .forEach(company => {
-          const option = document.createElement('option');
-          option.value = company.id;
-          let displayText = company.nome;
-          if (company.cnpj) {
-            displayText += ` (CNPJ: ${company.cnpj})`;
-          }
-          option.textContent = displayText;
-          parentCompanySelect.appendChild(option);
-        });
+      todasParentCompanies = companies; // salva todas
+      renderParentCompanies(); // desenha a lista inicial
     })
     .catch(error => {
       console.error('Erro ao carregar empresas principais:', error);
     });
 }
+
+function renderParentCompanies(filterText = '') {
+  const parentCompanySelect = document.getElementById('parentCompany');
+  if (!parentCompanySelect) return;
+
+  // Limpar opções
+  parentCompanySelect.innerHTML = '<option value="">Selecione Uma Empresa Principal</option>';
+
+  // Normalizar texto do filtro
+  const filter = filterText.toLowerCase();
+
+  todasParentCompanies
+    .filter(company => !company.parentId)
+    .forEach(company => {
+      const nome = company.nome?.toLowerCase() || '';
+      const cnpj = company.cnpj?.toLowerCase() || '';
+      const endereco = company.endereco?.toLowerCase() || '';
+      const telefone = company.telefone?.toLowerCase() || '';
+
+      // Verifica filtro
+      if (filter === '' || nome.includes(filter) || cnpj.includes(filter) || endereco.includes(filter) || telefone.includes(filter)) {
+        const option = document.createElement('option');
+        option.value = company.id;
+
+        // Exibição com padrão fixo
+        let displayText = company.nome;
+        displayText += company.cnpj ? ` — CNPJ: ${company.cnpj}` : " • CNPJ:";
+       
+        option.textContent = displayText;
+
+        // Tooltip detalhado
+        option.title = `${company.nome}
+        CNPJ: ${company.cnpj || 'Não informado'}`;
+
+        parentCompanySelect.appendChild(option);
+      }
+    });
+}
+
+
 
 function getLocalISOString() {
   const now = new Date();
@@ -637,11 +705,7 @@ function saveEmployee(e) {
     createdAt: createdAt
   };
 
-<<<<<<< HEAD
-  fetch("https://step.tcbx.com.br/api/employe.php", {
-=======
   fetch("https://localhost/EBEN/api/employe.php", {
->>>>>>> 6ae232c7c61eb2224befb8c7dbf536cbeb0794d5
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(employee)
@@ -649,7 +713,7 @@ function saveEmployee(e) {
   .then(response => response.json())
   .then(data => {
     if (data.status === 'sucesso') {
-      alert(`Técnico ${employee.nome} cadastrado com sucesso!\nSenha: ${data.password}`);
+      alert(`Analista ${employee.nome} cadastrado com sucesso!\nSenha: ${data.password}`);
       loadEmployees();
     } else {
       throw new Error(data.mensagem || 'Erro desconhecido');
@@ -667,7 +731,7 @@ function saveEmployee(e) {
 // Add employee management functions
 // Add employee management functions
 function loadEmployeesTable() {
-  fetch("https://step.tcbx.com.br/api/showtableemployes.php", {
+  fetch("https://localhost/EBEN/api/showtableemployes.php", {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -713,23 +777,31 @@ function deleteEmployee(employeeId) {
   if (!confirmDelete) return; // Se o usuário cancelar, para aqui
 
   const idSelect = { id: employeeId };
-  fetch("https://step.tcbx.com.br/api/delete_employee.php", {
-         method: 'POST',
-         headers: {
-        'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(idSelect)
-        })
-       .then(response => response.json())
-       .then(data => {
-        console.log('Resposta do servidor:', data);
-        loadEmployeesTable();
-        loadEmployees(); // Reload dropdown
-        })
-        .catch(error => {
-        console.error('Erro ao enviar:', error);
-});
+  fetch("https://localhost/EBEN/api/delete_employee.php", {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(idSelect)
+  })
+  .then(response => response.json())
+  .then(data => {
+    console.log('Resposta do servidor:', data);
+
+    if (data.status === 'sucesso') {
+      loadEmployeesTable();
+      loadEmployees(); // Atualiza dropdown
+      alert(data.mensagem);
+    } else {
+      alert("Erro: " + data.mensagem);
+    }
+  })
+  .catch(error => {
+    console.error('Erro ao enviar:', error);
+    alert("Ocorreu um erro inesperado ao tentar deletar o usuário.");
+  });
 }
+
 
 // Show task history in a modal
 function showTaskHistory(taskId) {
@@ -830,7 +902,8 @@ document.addEventListener('DOMContentLoaded', function () {
   const addCompanyBtn = document.getElementById('addCompanyBtn');
   if (addCompanyBtn) {
     addCompanyBtn.addEventListener('click', function () {
-      loadParentCompanies();
+      loadParentCompanies(); // carrega empresas principais
+
       const companyModal = new bootstrap.Modal(document.getElementById('companyModal'));
       companyModal.show();
 
@@ -867,6 +940,46 @@ document.addEventListener('DOMContentLoaded', function () {
       setTimeout(initCompanyMap, 300);
     });
   }
+
+  // =========================
+  // 🔎 LISTENERS PARA FILTROS
+  // =========================
+
+  // Filtro empresas normais
+  const empresaFilterInput = document.getElementById('empresaFilter');
+  const clearEmpresaBtn = document.getElementById('clearFilter');
+  if (empresaFilterInput) {
+    empresaFilterInput.addEventListener('input', filterCompanies);
+  }
+  if (clearEmpresaBtn) {
+    clearEmpresaBtn.addEventListener('click', function () {
+      empresaFilterInput.value = '';
+      filterCompanies();
+      clearEmpresaBtn.style.display = 'none';
+    });
+  }
+
+  // Filtro empresas principais (modal)
+  const parentFilterInput = document.getElementById('parentCompanyFilter');
+  const clearParentBtn = document.getElementById('clearParentFilter');
+  if (parentFilterInput) {
+    parentFilterInput.addEventListener('input', function () {
+      const text = parentFilterInput.value;
+      renderParentCompanies(text);
+      if (clearParentBtn) clearParentBtn.style.display = text ? 'block' : 'none';
+    });
+  }
+  if (clearParentBtn) {
+    clearParentBtn.addEventListener('click', function () {
+      parentFilterInput.value = '';
+      renderParentCompanies();
+      clearParentBtn.style.display = 'none';
+    });
+  }
+
+  // Carregar listas iniciais
+  loadCompanies();
+  loadParentCompanies();
 });
 
 // Make deleteEmployee available globally

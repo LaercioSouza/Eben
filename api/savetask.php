@@ -10,11 +10,7 @@ header("Content-type: application/json; charset=utf-8");
 
 // Configuração do banco de dados
 $host = 'localhost';
-$db = 'somos220_step_tcbx';
-$user = 'somos220_orbecode';
-$pass = 'oc#web@2025';
-
-
+$db = 'dashboard_db';$user = 'root';$pass = '';
 try {
     $pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8", $user, $pass);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);

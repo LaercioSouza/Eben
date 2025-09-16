@@ -170,7 +170,7 @@
             };
 
             try {
-                const response = await fetch('https://step.tcbx.com.br/api/cadastro_admin.php', {
+                const response = await fetch('https://localhost/EBEN/api/cadastro_admin.php', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -203,7 +203,7 @@
         nova_senha: formData.get('nova_senha')
         };
         try {
-        const response = await fetch('https://step.tcbx.com.br/api/redefinir_senha.php', {
+        const response = await fetch('https://localhost/EBEN/api/redefinir_senha.php', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
