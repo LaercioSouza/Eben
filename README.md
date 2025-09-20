@@ -1,73 +1,12 @@
-# Welcome to your Lovable project
-
-## Project info
-
-**URL**: https://lovable.dev/projects/44349cf2-5a82-40db-8e02-b0eb94d04688
-
-## How can I edit this code?
-
-There are several ways of editing your application.
-
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/44349cf2-5a82-40db-8e02-b0eb94d04688) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/44349cf2-5a82-40db-8e02-b0eb94d04688) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+Projeto para controle e gestão de tarefas para analistas de implantação de sistemas. 
+Esse projeto foi feito usando as tecnologias HTML, CSS, JAVASCRIPT E PHP e MYSQL, usando geolozalização.
+Para executar esse projeto localmente siga os passos abaixo:
+1) Instale um servidor APACHE junto com o MYSQL (XAMPP por exemplo)
+2) Faça a execução do script do banco de dados localizado em: database/script.txt.
+3) Use o live server no VsCode para executar o projeto.
+4) Faça o cadastro do usuário Master, executando o arquivo: src/cadastro_admin.html
+5) Após isso, vá para index.html
+6) Feito isso, cadastre as empresas no sistema
+7) Depois cadastre os analistas de implantação
+8) Agora você pode cadastrar as tarefas e formulários(Caso quiser)
+9) Feito isso o projeto está configurado para rodar completamente.
