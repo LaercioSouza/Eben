@@ -1,5 +1,5 @@
 Projeto para controle e gestão de tarefas para analistas de implantação de sistemas. 
-Esse projeto foi feito usando as tecnologias HTML, CSS, JAVASCRIPT, PHP e MYSQL, usando geolozalização.
+Esse projeto foi feito usando as tecnologias HTML, CSS, JAVASCRIPT, PHP e MYSQL, usando geolocalização.
 Para executar esse projeto localmente siga os passos abaixo:
 1) Instale um servidor APACHE junto com o MYSQL (XAMPP por exemplo). Se tiver tendo problemas com o mysql do xampp, instale o próprio servidor mysql.
 2) Faça a execução do script do banco de dados localizado em: database/script.txt.
