@@ -4,9 +4,10 @@ Para executar esse projeto localmente siga os passos abaixo:
 1) Instale um servidor APACHE junto com o MYSQL (XAMPP por exemplo). Se tiver tendo problemas com o mysql do xampp, instale o próprio servidor mysql.
 2) Faça a execução do script do banco de dados localizado em: database/script.txt.
 3) Use o live server no VsCode para executar o projeto.
-4) Faça o cadastro do usuário Master, executando o arquivo: src/cadastro_admin.html
-5) Após isso, vá para index.html
-6) Feito isso, cadastre as empresas no sistema
-7) Depois cadastre os analistas de implantação
-8) Agora você pode cadastrar as tarefas e formulários(Caso quiser)
-9) Feito isso o projeto está configurado para rodar completamente.
+4) Caso esteja tendo problemas de conexão com o banco, com os servidores ligados execute no navegador: localhost/eben-main (nome da pasta principal do projeto)
+5) Faça o cadastro do usuário Master, executando o arquivo: src/cadastro_admin.html
+6) Após isso, vá para index.html
+7) Feito isso, cadastre as empresas no sistema
+8) Depois cadastre os analistas de implantação
+9) Agora você pode cadastrar as tarefas e formulários(Caso quiser)
+10) Feito isso o projeto está configurado para rodar completamente.
